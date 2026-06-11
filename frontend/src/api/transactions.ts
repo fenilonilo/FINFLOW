@@ -1,0 +1,63 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from './client'
+import type { Transaction, PaginatedResponse } from '@/types/api'
+
+export interface TransactionFilters {
+  year?: number
+  month?: number
+  type?: string
+  kind?: string
+  category?: number
+  page?: number
+}
+
+export function useTransactions(filters: TransactionFilters = {}) {
+  return useQuery({
+    queryKey: ['transactions', filters],
+    queryFn: () =>
+      api
+        .get<PaginatedResponse<Transaction>>('/transactions/', { params: filters })
+        .then((r) => r.data),
+  })
+}
+
+export function useCreateTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: Partial<Transaction>) =>
+      api.post<Transaction>('/transactions/', payload).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transactions'] })
+      void qc.invalidateQueries({ queryKey: ['summary'] })
+      void qc.invalidateQueries({ queryKey: ['yearly'] })
+      void qc.invalidateQueries({ queryKey: ['health'] })
+    },
+  })
+}
+
+export function useUpdateTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }: Partial<Transaction> & { id: number }) =>
+      api.patch<Transaction>(`/transactions/${id}/`, payload).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transactions'] })
+      void qc.invalidateQueries({ queryKey: ['summary'] })
+      void qc.invalidateQueries({ queryKey: ['yearly'] })
+      void qc.invalidateQueries({ queryKey: ['health'] })
+    },
+  })
+}
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/transactions/${id}/`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['transactions'] })
+      void qc.invalidateQueries({ queryKey: ['summary'] })
+      void qc.invalidateQueries({ queryKey: ['yearly'] })
+      void qc.invalidateQueries({ queryKey: ['health'] })
+    },
+  })
+}
