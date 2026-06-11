@@ -352,7 +352,7 @@ export default function Transactions() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setValue('type', t)}
+                  onClick={() => { setValue('type', t); if (t === 'income') { setValue('is_paid', true); setValue('category', undefined); setValue('payment_method', undefined) } }}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
                     txType === t
                       ? t === 'expense'
@@ -407,35 +407,35 @@ export default function Transactions() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-text-muted">
-                    Categoria {txType === 'expense' ? '*' : ''}
-                  </label>
-                  <select
-                    {...register('category', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
-                    className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-muted focus:border-accent/50 focus:outline-none"
-                  >
-                    <option value="">Selecionar...</option>
-                    {categories?.results.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
+              {txType === 'expense' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-text-muted">Categoria</label>
+                    <select
+                      {...register('category', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
+                      className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-muted focus:border-accent/50 focus:outline-none"
+                    >
+                      <option value="">Selecionar...</option>
+                      {categories?.results.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-text-muted">Forma de Pagamento</label>
-                  <select
-                    {...register('payment_method', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
-                    className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-muted focus:border-accent/50 focus:outline-none"
-                  >
-                    <option value="">Selecionar...</option>
-                    {paymentMethods?.results.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-text-muted">Forma de Pagamento</label>
+                    <select
+                      {...register('payment_method', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
+                      className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-muted focus:border-accent/50 focus:outline-none"
+                    >
+                      <option value="">Selecionar...</option>
+                      {paymentMethods?.results.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center gap-4">
                 <div>
@@ -449,14 +449,16 @@ export default function Transactions() {
                   </select>
                 </div>
 
-                <label className="flex cursor-pointer items-center gap-2 mt-5">
-                  <input
-                    {...register('is_paid')}
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border-subtle accent-accent"
-                  />
-                  <span className="text-sm text-text-muted">Já foi pago</span>
-                </label>
+                {txType === 'expense' && (
+                  <label className="flex cursor-pointer items-center gap-2 mt-5">
+                    <input
+                      {...register('is_paid')}
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border-subtle accent-accent"
+                    />
+                    <span className="text-sm text-text-muted">Já foi pago</span>
+                  </label>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
