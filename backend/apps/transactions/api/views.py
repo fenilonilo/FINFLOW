@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from apps.common.dtos import CreateTransactionDTO
 from apps.transactions.api.serializers import (
     DebtSerializer,
+    GenerateVariableItemSerializer,
     RecurringExpenseSerializer,
     TransactionSerializer,
     _serialize_summary,
@@ -107,6 +108,33 @@ class GenerateFixedView(viewsets.ViewSet):
                 "created": result.created,
                 "skipped": result.skipped,
                 "completed_templates": result.completed_templates,
+                "pending_variables": [
+                    {
+                        "id": pv.id,
+                        "description": pv.description,
+                        "suggested_amount": pv.suggested_amount,
+                        "category_id": pv.category_id,
+                        "payment_method_id": pv.payment_method_id,
+                        "due_day": pv.due_day,
+                    }
+                    for pv in result.pending_variables
+                ],
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class GenerateVariablesView(viewsets.ViewSet):
+    def create(self, request, year=None, month=None):
+        serializer = GenerateVariableItemSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        result = RecurringExpenseService().generate_variables(
+            request.user.id,
+            int(year),
+            int(month),
+            serializer.validated_data,
+        )
+        return Response(
+            {"created": result.created, "skipped": result.skipped},
             status=status.HTTP_200_OK,
         )

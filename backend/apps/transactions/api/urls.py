@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from apps.transactions.api.views import (
     DebtViewSet,
     GenerateFixedView,
+    GenerateVariablesView,
     MonthSummaryView,
     RecurringExpenseViewSet,
     TransactionViewSet,
@@ -27,5 +28,10 @@ urlpatterns = [
         "months/<int:year>/<int:month>/generate-fixed/",
         GenerateFixedView.as_view({"post": "create"}),
         name="generate-fixed",
+    ),
+    path(
+        "months/<int:year>/<int:month>/generate-variables/",
+        GenerateVariablesView.as_view({"post": "create"}),
+        name="generate-variables",
     ),
 ]

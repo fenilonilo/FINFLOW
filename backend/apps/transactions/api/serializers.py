@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from apps.core.api.serializers import CategorySerializer, PaymentMethodSerializer
@@ -88,6 +90,7 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "description",
+            "is_variable",
             "category",
             "category_detail",
             "payment_method",
@@ -100,6 +103,26 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             "acquisition",
         ]
         read_only_fields = ["id", "generated_count"]
+
+    def validate(self, data):
+        is_variable = data.get(
+            "is_variable", getattr(self.instance, "is_variable", False)
+        )
+        default_amount = data.get(
+            "default_amount", getattr(self.instance, "default_amount", None)
+        )
+        if not is_variable and not default_amount:
+            raise serializers.ValidationError(
+                {"default_amount": ["Valor obrigatório para gastos de valor fixo."]}
+            )
+        return data
+
+
+class GenerateVariableItemSerializer(serializers.Serializer):
+    recurring_id = serializers.IntegerField()
+    amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal("0.01")
+    )
 
 
 class DebtSerializer(serializers.ModelSerializer):
