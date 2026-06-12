@@ -49,6 +49,9 @@ class TransactionSerializer(serializers.ModelSerializer):
     payment_method_detail = PaymentMethodSerializer(
         source="payment_method", read_only=True
     )
+    installments = serializers.IntegerField(
+        min_value=2, max_value=48, required=False, write_only=True
+    )
 
     class Meta:
         model = Transaction
@@ -69,6 +72,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             "recurring_source",
             "installment_current",
             "installment_total",
+            "debt",
+            "installments",
         ]
         read_only_fields = [
             "id",
@@ -76,6 +81,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "month",
             "category_detail",
             "payment_method_detail",
+            "debt",
         ]
 
 
@@ -126,11 +132,14 @@ class GenerateVariableItemSerializer(serializers.Serializer):
 
 
 class DebtSerializer(serializers.ModelSerializer):
+    card_detail = serializers.SerializerMethodField()
+
     class Meta:
         model = Debt
         fields = [
             "id",
             "debt_type",
+            "origin",
             "creditor",
             "payment_method",
             "installment_current",
@@ -139,5 +148,23 @@ class DebtSerializer(serializers.ModelSerializer):
             "total_amount",
             "start_date",
             "is_settled",
+            "card_detail",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "origin", "card_detail"]
+
+    def get_card_detail(self, obj):
+        pm = obj.payment_method
+        if pm and pm.card_id:
+            return {
+                "id": pm.card_id,
+                "name": pm.card.name,
+                "color": pm.card.color,
+            }
+        return None
+
+    def validate(self, data):
+        if self.instance and getattr(self.instance, "origin", None) == "card_purchase":
+            raise serializers.ValidationError(
+                {"origin": ["Dívida de cartão não é editável; exclua e relance."]}
+            )
+        return data

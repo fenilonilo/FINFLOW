@@ -23,17 +23,26 @@ class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = [
-        "year", "month", "type", "kind", "category", "payment_method", "is_paid"
+        "year",
+        "month",
+        "type",
+        "kind",
+        "category",
+        "payment_method",
+        "is_paid",
     ]
     search_fields = ["description"]
 
     def get_queryset(self):
-        return Transaction.objects.filter(user=self.request.user).select_related(
-            "category", "payment_method"
-        ).order_by("-date", "-id")
+        return (
+            Transaction.objects.filter(user=self.request.user)
+            .select_related("category", "payment_method")
+            .order_by("-date", "-id")
+        )
 
     def perform_create(self, serializer):
-        data = serializer.validated_data
+        data = serializer.validated_data.copy()
+        installments = data.pop("installments", None)
         dto = CreateTransactionDTO(
             user_id=self.request.user.id,
             type=data["type"],
@@ -49,8 +58,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
             installment_current=data.get("installment_current"),
             installment_total=data.get("installment_total"),
         )
-        tx = TransactionService().create(dto)
-        serializer.instance = tx
+        if installments:
+            txs = TransactionService().create_installment_purchase(dto, installments)
+            serializer.instance = txs[0]
+        else:
+            serializer.instance = TransactionService().create(dto)
+
+    def perform_update(self, serializer):
+        serializer.validated_data.pop("installments", None)
+        tx = serializer.save()
+        year, month = TransactionService().resolve_competence(
+            self.request.user.id, tx.payment_method_id, tx.date
+        )
+        if (tx.year, tx.month) != (year, month):
+            tx.year = year
+            tx.month = month
+            tx.save(update_fields=["year", "month"])
 
     @action(detail=True, methods=["post"], url_path="toggle-paid")
     def toggle_paid(self, request, pk=None):
@@ -74,10 +97,17 @@ class DebtViewSet(viewsets.ModelViewSet):
     serializer_class = DebtSerializer
 
     def get_queryset(self):
-        return Debt.objects.filter(user=self.request.user)
+        return Debt.objects.filter(user=self.request.user).select_related(
+            "payment_method__card"
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        from apps.transactions.services import DebtService
+
+        DebtService().delete(instance.id, self.request.user.id)
 
     @action(detail=True, methods=["post"])
     def advance(self, request, pk=None):
