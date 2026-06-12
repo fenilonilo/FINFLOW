@@ -10,7 +10,7 @@ import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ColorPicker from '@/components/ui/ColorPicker'
-import IconPicker from '@/components/ui/IconPicker'
+import IconPicker, { IconComponent } from '@/components/ui/IconPicker'
 import { toast } from '@/components/ui/Toast'
 import type { Category, PaymentMethod, PaginatedResponse } from '@/types/api'
 import {
@@ -425,10 +425,12 @@ export default function Settings() {
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div
-                            className="h-3 w-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: cat.color }}
-                          />
+                          <span
+                            className="flex-shrink-0"
+                            style={{ color: cat.color }}
+                          >
+                            <IconComponent name={cat.icon || 'tag'} size={16} />
+                          </span>
                           <span className="font-medium text-text-primary">{cat.name}</span>
                           {cat.is_archived && (
                             <span className="rounded-full bg-text-muted/10 px-1.5 py-0.5 text-xs text-text-muted">
@@ -518,10 +520,12 @@ export default function Settings() {
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: pm.color }}
-                          />
+                          <span
+                            className="flex-shrink-0"
+                            style={{ color: pm.color }}
+                          >
+                            <IconComponent name={pm.icon || 'credit-card'} size={16} />
+                          </span>
                           <span className="font-medium text-text-primary">{pm.name}</span>
                           {pm.is_archived && (
                             <span className="rounded-full bg-text-muted/10 px-1.5 py-0.5 text-xs text-text-muted">
