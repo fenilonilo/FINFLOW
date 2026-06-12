@@ -63,6 +63,8 @@ class PaymentMethodFactory(DjangoModelFactory):
     name = factory.Sequence(lambda n: f"Forma {n}")
     icon = "credit-card"
     color = "#94a3b8"
+    card = None
+    card_function = None
     is_default = False
     is_archived = False
 
@@ -152,6 +154,7 @@ class CardFactory(DjangoModelFactory):
     color = "#1a1a1a"
     closing_day = 12
     due_day = 19
+    limit = None
 
 
 class CardInvoiceFactory(DjangoModelFactory):

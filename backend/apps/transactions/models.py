@@ -88,6 +88,13 @@ class Transaction(models.Model):
     )
     installment_current = models.PositiveSmallIntegerField(null=True, blank=True)
     installment_total = models.PositiveSmallIntegerField(null=True, blank=True)
+    debt = models.ForeignKey(
+        "transactions.Debt",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="installments",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -108,17 +115,26 @@ class Transaction(models.Model):
         ]
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        self.year = self.date.year
-        self.month = self.date.month
+        if not self.year or not self.month:
+            self.year = self.date.year
+            self.month = self.date.month
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.description} ({self.date})"
 
 
+class DebtOrigin(models.TextChoices):
+    MANUAL = "manual"
+    CARD_PURCHASE = "card_purchase"
+
+
 class Debt(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="debts")
     debt_type = models.CharField(max_length=20, default="installment")
+    origin = models.CharField(
+        max_length=20, choices=DebtOrigin.choices, default=DebtOrigin.MANUAL
+    )
     creditor = models.CharField(max_length=100)
     payment_method = models.ForeignKey(
         PaymentMethod, null=True, blank=True, on_delete=models.SET_NULL
