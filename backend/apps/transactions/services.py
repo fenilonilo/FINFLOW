@@ -6,6 +6,7 @@ from apps.common.dtos import (
     CreateTransactionDTO,
     GenerationResultDTO,
     MonthSummaryDTO,
+    PendingVariableDTO,
 )
 from apps.core.repositories import CategoryRepository  # noqa: F401
 from apps.investments.repositories import InvestmentRepository
@@ -33,8 +34,6 @@ class RecurringExpenseService:
     def generate_for_month(
         self, user_id: int, year: int, month: int
     ) -> GenerationResultDTO:
-        from apps.common.dtos import PendingVariableDTO
-
         templates = self._recurring.list_active(user_id)
         created = 0
         skipped = 0
