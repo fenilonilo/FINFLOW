@@ -46,3 +46,10 @@ finflow-*.png
 
 # Screenshots
 *.png
+
+# Git worktrees
+.worktrees/
+.worktrees/
+
+# Git worktrees
+.worktrees/
