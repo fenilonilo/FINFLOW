@@ -32,7 +32,10 @@ class RecurringExpense(models.Model):
         PaymentMethod, on_delete=models.PROTECT, null=True, blank=True
     )
     description = models.CharField(max_length=100)
-    default_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    is_variable = models.BooleanField(default=False)
+    default_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     due_day = models.PositiveSmallIntegerField()  # 1-28
     status = models.CharField(
         max_length=10,

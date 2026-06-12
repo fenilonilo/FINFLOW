@@ -79,6 +79,7 @@ class RecurringExpenseFactory(DjangoModelFactory):
         PaymentMethodFactory, user=factory.SelfAttribute("..user")
     )
     description = factory.Sequence(lambda n: f"Gasto Fixo {n}")
+    is_variable = False
     default_amount = Decimal("100.00")
     due_day = 10
     status = RecurringStatus.ACTIVE
