@@ -83,9 +83,15 @@ function VariableAmountsModal({
                 type="hidden"
                 {...register(`overrides.${idx}.recurring_id`, { valueAsNumber: true })}
               />
-              <span className="flex-1 text-sm text-text-primary">{item.description}</span>
+              <label
+                htmlFor={`variable-amount-${item.id}`}
+                className="flex-1 text-sm text-text-primary cursor-pointer"
+              >
+                {item.description}
+              </label>
               <div className="w-36">
                 <input
+                  id={`variable-amount-${item.id}`}
                   {...register(`overrides.${idx}.amount`, {
                     required: 'Obrigatório',
                     pattern: { value: /^\d+(\.\d{1,2})?$/, message: 'Inválido' },
