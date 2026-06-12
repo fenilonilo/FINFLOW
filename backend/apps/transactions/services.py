@@ -1,7 +1,7 @@
 import calendar
 import datetime
 from decimal import Decimal
-from typing import TypedDict
+from typing import Any
 
 from apps.common.dtos import (
     CreateTransactionDTO,
@@ -21,11 +21,6 @@ from apps.transactions.repositories import (
     RecurringExpenseRepository,
     TransactionRepository,
 )
-
-
-class VariableOverride(TypedDict):
-    recurring_id: int
-    amount: Decimal
 
 
 class RecurringExpenseService:
@@ -112,7 +107,7 @@ class RecurringExpenseService:
         user_id: int,
         year: int,
         month: int,
-        overrides: list[VariableOverride],
+        overrides: list[dict[str, Any]],
     ) -> GenerationResultDTO:
         from apps.common.exceptions import DomainError
 
