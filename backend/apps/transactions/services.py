@@ -1,6 +1,7 @@
 import calendar
 import datetime
 from decimal import Decimal
+from typing import TypedDict
 
 from apps.common.dtos import (
     CreateTransactionDTO,
@@ -20,6 +21,11 @@ from apps.transactions.repositories import (
     RecurringExpenseRepository,
     TransactionRepository,
 )
+
+
+class VariableOverride(TypedDict):
+    recurring_id: int
+    amount: Decimal
 
 
 class RecurringExpenseService:
@@ -99,6 +105,68 @@ class RecurringExpenseService:
             skipped=skipped,
             completed_templates=completed,
             pending_variables=pending_variables,
+        )
+
+    def generate_variables(
+        self,
+        user_id: int,
+        year: int,
+        month: int,
+        overrides: list[VariableOverride],
+    ) -> GenerationResultDTO:
+        from apps.common.exceptions import DomainError
+
+        created = 0
+        skipped = 0
+
+        for override in overrides:
+            template = self._recurring.get_by_id(override["recurring_id"], user_id)
+
+            if not template.is_variable or template.status != RecurringStatus.ACTIVE:
+                raise DomainError(
+                    f"RecurringExpense {template.id} is not variable or not active."
+                )
+
+            if self._recurring.exists_transaction_for_month(
+                template.id, user_id, year, month
+            ):
+                skipped += 1
+                continue
+
+            day = min(template.due_day, calendar.monthrange(year, month)[1])
+            date = datetime.date(year, month, day)
+
+            self._tx.create(
+                {
+                    "user_id": user_id,
+                    "type": TransactionType.EXPENSE,
+                    "kind": TransactionKind.FIXED,
+                    "category_id": template.category_id,
+                    "payment_method_id": template.payment_method_id,
+                    "description": template.description,
+                    "amount": override["amount"],
+                    "date": date,
+                    "year": year,
+                    "month": month,
+                    "is_paid": False,
+                    "recurring_source_id": template.id,
+                }
+            )
+            created += 1
+
+            template.generated_count += 1
+            if (
+                template.total_occurrences
+                and template.generated_count >= template.total_occurrences
+            ):
+                template.status = RecurringStatus.PAUSED
+            template.save()
+
+        return GenerationResultDTO(
+            created=created,
+            skipped=skipped,
+            completed_templates=[],
+            pending_variables=[],
         )
 
 

@@ -189,5 +189,8 @@ def test_generate_variables_raises_for_non_variable_template():
 
     with pytest.raises(DomainError):
         service.generate_variables(
-            user.id, 2025, 1, [{"recurring_id": template.id, "amount": Decimal("50.00")}]
+            user.id,
+            2025,
+            1,
+            [{"recurring_id": template.id, "amount": Decimal("50.00")}],
         )
