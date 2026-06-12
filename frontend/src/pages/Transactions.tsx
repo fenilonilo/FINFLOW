@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { invoiceMonthLabel } from '@/lib/cardCycle'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -31,6 +32,7 @@ const schema = z.object({
   category: z.number().optional(),
   payment_method: z.number().optional(),
   is_paid: z.boolean().default(false),
+  installments: z.number().int().min(2).max(48).optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -82,6 +84,7 @@ export default function Transactions() {
       queryClient.invalidateQueries({ queryKey: ['summary', year, month] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       setModalOpen(false)
+      setIsInstallment(false)
       reset()
     },
     onError: () => toast('Erro ao criar lançamento', 'error'),
@@ -121,11 +124,17 @@ export default function Transactions() {
   })
 
   const txType = watch('type')
+  const selectedPmId = watch('payment_method')
+  const selectedPm = paymentMethods?.results.find((p) => p.id === selectedPmId)
+  const isCredit = selectedPm?.card_function === 'credit'
+  const watchedDate = watch('date')
+  const [isInstallment, setIsInstallment] = useState(false)
 
   const onSubmit = (data: FormData) => {
     const payload: Record<string, unknown> = { ...data }
     if (!payload.category) delete payload.category
     if (!payload.payment_method) delete payload.payment_method
+    if (!payload.installments) delete payload.installments
     createMutation.mutate(payload as FormData)
   }
 
@@ -198,7 +207,10 @@ export default function Transactions() {
           >
             <option value="">Todas as formas</option>
             {paymentMethods?.results.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+              <option key={p.id} value={p.id}>
+                {p.name}
+                {p.card_function === 'credit' ? ' · Crédito' : p.card_function === 'debit' ? ' · Débito' : ''}
+              </option>
             ))}
           </select>
 
@@ -430,10 +442,53 @@ export default function Transactions() {
                     >
                       <option value="">Selecionar...</option>
                       {paymentMethods?.results.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                          {p.card_function === 'credit' ? ' · Crédito' : p.card_function === 'debit' ? ' · Débito' : ''}
+                        </option>
                       ))}
                     </select>
                   </div>
+                </div>
+              )}
+
+              {txType === 'expense' && isCredit && (
+                <div className="space-y-3 rounded-xl border border-accent/20 bg-accent/5 p-3">
+                  {watchedDate && selectedPm?.card_detail && (
+                    <p className="text-xs text-accent">
+                      Entra na fatura de{' '}
+                      {invoiceMonthLabel(selectedPm.card_detail.closing_day, watchedDate)}
+                    </p>
+                  )}
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isInstallment}
+                      onChange={(e) => {
+                        setIsInstallment(e.target.checked)
+                        if (!e.target.checked) setValue('installments', undefined)
+                      }}
+                      className="h-4 w-4 rounded border-border-subtle accent-accent"
+                    />
+                    <span className="text-sm text-text-muted">Parcelado?</span>
+                  </label>
+                  {isInstallment && (
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-text-muted">
+                        Nº de parcelas (valor total acima)
+                      </label>
+                      <input
+                        {...register('installments', { valueAsNumber: true })}
+                        type="number"
+                        min={2}
+                        max={48}
+                        className="w-24 rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-accent/50 focus:outline-none"
+                      />
+                      {errors.installments && (
+                        <p className="mt-1 text-xs text-danger">{errors.installments.message}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -464,7 +519,7 @@ export default function Transactions() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setModalOpen(false); reset() }}
+                  onClick={() => { setModalOpen(false); setIsInstallment(false); reset() }}
                   className="rounded-xl px-4 py-2 text-sm text-text-muted hover:bg-elevated transition-colors"
                 >
                   Cancelar

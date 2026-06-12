@@ -75,6 +75,17 @@ export default function Debts() {
                           Quitada
                         </span>
                       )}
+                      {debt.card_detail && (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs"
+                          style={{
+                            backgroundColor: `${debt.card_detail.color}20`,
+                            color: debt.card_detail.color,
+                          }}
+                        >
+                          {debt.card_detail.name}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-text-muted">
                       {DEBT_TYPE_LABELS[debt.debt_type] ?? debt.debt_type}
@@ -109,7 +120,7 @@ export default function Debts() {
 
                 <div className="flex items-center justify-between text-xs text-text-muted">
                   <span>Início: {new Date(debt.start_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                  {!debt.is_settled && (
+                  {!debt.is_settled && debt.origin !== 'card_purchase' && (
                     <button
                       onClick={() => advanceMutation.mutate(debt.id)}
                       disabled={advanceMutation.isPending}
@@ -118,6 +129,9 @@ export default function Debts() {
                       <ArrowRight size={12} />
                       Avançar Parcela
                     </button>
+                  )}
+                  {debt.origin === 'card_purchase' && !debt.is_settled && (
+                    <span className="text-xs text-text-muted">avança ao pagar fatura</span>
                   )}
                 </div>
               </div>

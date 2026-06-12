@@ -227,6 +227,12 @@ export interface Debt {
   total_amount: string
   start_date: string
   is_settled: boolean
+  origin: 'manual' | 'card_purchase'
+  card_detail: {
+    id: number
+    name: string
+    color: string
+  } | null
 }
 
 export interface PaginatedResponse<T> {
