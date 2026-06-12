@@ -51,16 +51,33 @@ export interface Transaction {
 export interface RecurringExpense {
   id: number
   description: string
+  is_variable: boolean
   category: number | null
   category_detail: Pick<Category, 'id' | 'name' | 'icon' | 'color'> | null
   payment_method: number | null
   payment_method_detail: Pick<PaymentMethod, 'id' | 'name' | 'icon' | 'color'> | null
-  default_amount: string
+  default_amount: string | null
   due_day: number
   status: 'active' | 'paused'
   total_occurrences: number | null
   generated_count: number
   acquisition: number | null
+}
+
+export interface PendingVariable {
+  id: number
+  description: string
+  suggested_amount: string | null
+  category_id: number | null
+  payment_method_id: number | null
+  due_day: number
+}
+
+export interface GenerateFixedResult {
+  created: number
+  skipped: number
+  completed_templates: number[]
+  pending_variables: PendingVariable[]
 }
 
 export interface MonthSummary {
