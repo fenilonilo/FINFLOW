@@ -139,3 +139,55 @@ def test_generate_fixed_variable_with_no_default_amount_returns_none_suggested()
 
     assert len(result.pending_variables) == 1
     assert result.pending_variables[0].suggested_amount is None
+
+
+def test_generate_variables_creates_transactions_with_provided_amounts():
+    user = UserFactory()
+    template = RecurringExpenseFactory(
+        user=user, is_variable=True, default_amount=None, due_day=10
+    )
+    service = RecurringExpenseService()
+
+    result = service.generate_variables(
+        user.id, 2025, 1, [{"recurring_id": template.id, "amount": Decimal("187.50")}]
+    )
+
+    assert result.created == 1
+    assert result.skipped == 0
+    tx = Transaction.objects.get(recurring_source=template, year=2025, month=1)
+    assert tx.amount == Decimal("187.50")
+    assert tx.kind == "fixed"
+    template.refresh_from_db()
+    assert template.generated_count == 1
+
+
+def test_generate_variables_is_idempotent():
+    user = UserFactory()
+    template = RecurringExpenseFactory(user=user, is_variable=True, default_amount=None)
+    service = RecurringExpenseService()
+
+    service.generate_variables(
+        user.id, 2025, 1, [{"recurring_id": template.id, "amount": Decimal("50.00")}]
+    )
+    result = service.generate_variables(
+        user.id, 2025, 1, [{"recurring_id": template.id, "amount": Decimal("50.00")}]
+    )
+
+    assert result.created == 0
+    assert result.skipped == 1
+    assert Transaction.objects.filter(
+        recurring_source=template, year=2025, month=1
+    ).count() == 1
+
+
+def test_generate_variables_raises_for_non_variable_template():
+    from apps.common.exceptions import DomainError
+
+    user = UserFactory()
+    template = RecurringExpenseFactory(user=user, is_variable=False)
+    service = RecurringExpenseService()
+
+    with pytest.raises(DomainError):
+        service.generate_variables(
+            user.id, 2025, 1, [{"recurring_id": template.id, "amount": Decimal("50.00")}]
+        )
