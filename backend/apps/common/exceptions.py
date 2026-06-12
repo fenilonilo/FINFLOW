@@ -26,7 +26,7 @@ def custom_exception_handler(exc: Exception, context: object) -> Response | None
     if isinstance(exc, ValidationDomainError):
         return Response(
             {"detail": "Validation error", "errors": exc.errors},
-            status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status=status.HTTP_400_BAD_REQUEST,
         )
     if isinstance(exc, DomainError):
         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
