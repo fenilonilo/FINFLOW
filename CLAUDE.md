@@ -43,6 +43,8 @@ docker compose up -d      # sobe db + backend + frontend
 docker compose logs -f    # acompanhar logs
 ```
 
+> ⚠️ **Venv host ↔ container:** `./backend:/app` é bind-mounted. O `.venv` é blindado por um volume anônimo (`/app/.venv` no compose) + `.dockerignore`, pois o `.venv` do host (Windows) é incompatível com o do container (Linux). NUNCA remova o volume `/app/.venv` nem rode `uv sync`/`uv run` no host contra esse mount enquanto o container roda — isso corrompe o venv de ambos e mata o backend (`ModuleNotFoundError: django.core`). Mesma regra para `node_modules` no frontend. Para mexer no venv, use `docker compose exec backend uv ...`.
+
 ### Frontend (dentro de `frontend/`)
 ```bash
 npm install
