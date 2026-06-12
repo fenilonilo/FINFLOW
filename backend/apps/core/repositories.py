@@ -38,6 +38,17 @@ class PaymentMethodRepository:
             raise NotFoundError(f"PaymentMethod {pm_id} not found")
 
     @staticmethod
+    def get_with_card(pm_id: int, user_id: int) -> PaymentMethod:
+        from apps.common.exceptions import NotFoundError
+
+        try:
+            return PaymentMethod.objects.select_related("card").get(
+                id=pm_id, user_id=user_id
+            )
+        except PaymentMethod.DoesNotExist:
+            raise NotFoundError(f"PaymentMethod {pm_id} not found")
+
+    @staticmethod
     def list_by_user(
         user_id: int, include_archived: bool = False
     ) -> list[PaymentMethod]:

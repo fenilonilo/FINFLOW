@@ -9,7 +9,12 @@ from apps.common.dtos import (
     MonthSummaryDTO,
     PendingVariableDTO,
 )
-from apps.core.repositories import CategoryRepository  # noqa: F401
+from apps.cards.cycle import competence_for_purchase
+from apps.core.models import CardFunction
+from apps.core.repositories import (  # noqa: F401
+    CategoryRepository,
+    PaymentMethodRepository,
+)
 from apps.investments.repositories import InvestmentRepository
 from apps.transactions.models import (
     RecurringStatus,
@@ -169,6 +174,18 @@ class TransactionService:
     def __init__(self, transaction_repo: TransactionRepository | None = None) -> None:
         self._tx = transaction_repo or TransactionRepository()
 
+    def resolve_competence(
+        self,
+        user_id: int,
+        payment_method_id: int | None,
+        date: datetime.date,
+    ) -> tuple[int, int]:
+        if payment_method_id:
+            pm = PaymentMethodRepository.get_with_card(payment_method_id, user_id)
+            if pm.card_function == CardFunction.CREDIT and pm.card is not None:
+                return competence_for_purchase(pm.card.closing_day, date)
+        return date.year, date.month
+
     def create(self, dto: CreateTransactionDTO) -> Transaction:
         errors: dict[str, list[str]] = {}
 
@@ -188,6 +205,10 @@ class TransactionService:
             None if dto.type == TransactionType.INCOME else dto.category_id
         )
 
+        year, month = self.resolve_competence(
+            dto.user_id, dto.payment_method_id, dto.date
+        )
+
         return self._tx.create(
             {
                 "user_id": dto.user_id,
@@ -198,8 +219,8 @@ class TransactionService:
                 "description": dto.description,
                 "amount": dto.amount,
                 "date": dto.date,
-                "year": dto.date.year,
-                "month": dto.date.month,
+                "year": year,
+                "month": month,
                 "is_paid": is_paid,
                 "recurring_source_id": dto.recurring_source_id,
                 "installment_current": dto.installment_current,
