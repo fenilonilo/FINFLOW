@@ -4,6 +4,7 @@ from typing import Any
 from django.db.models import Sum
 
 from apps.transactions.models import (
+    Debt,
     RecurringExpense,
     RecurringStatus,
     Transaction,
@@ -121,3 +122,24 @@ class RecurringExpenseRepository:
             return RecurringExpense.objects.get(id=recurring_id, user_id=user_id)
         except RecurringExpense.DoesNotExist:
             raise NotFoundError(f"RecurringExpense {recurring_id} not found")
+
+
+class DebtRepository:
+    @staticmethod
+    def create(data: dict[str, Any]) -> Debt:
+        return Debt.objects.create(**data)
+
+    @staticmethod
+    def get_by_id(debt_id: int, user_id: int) -> Debt:
+        from apps.common.exceptions import NotFoundError
+
+        try:
+            return Debt.objects.get(id=debt_id, user_id=user_id)
+        except Debt.DoesNotExist:
+            raise NotFoundError(f"Debt {debt_id} not found")
+
+    @staticmethod
+    def delete_card_debt(debt: Debt) -> None:
+        debt.installments.filter(is_paid=False).delete()
+        debt.installments.filter(is_paid=True).update(debt=None)
+        debt.delete()

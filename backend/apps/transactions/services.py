@@ -1,15 +1,17 @@
 import calendar
 import datetime
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 from typing import Any
 
+from django.db import transaction as db_transaction
+
+from apps.cards.cycle import add_months, competence_for_purchase
 from apps.common.dtos import (
     CreateTransactionDTO,
     GenerationResultDTO,
     MonthSummaryDTO,
     PendingVariableDTO,
 )
-from apps.cards.cycle import competence_for_purchase
 from apps.core.models import CardFunction
 from apps.core.repositories import (  # noqa: F401
     CategoryRepository,
@@ -17,12 +19,14 @@ from apps.core.repositories import (  # noqa: F401
 )
 from apps.investments.repositories import InvestmentRepository
 from apps.transactions.models import (
+    DebtOrigin,
     RecurringStatus,
     Transaction,
     TransactionKind,
     TransactionType,
 )
 from apps.transactions.repositories import (
+    DebtRepository,
     RecurringExpenseRepository,
     TransactionRepository,
 )
@@ -228,6 +232,87 @@ class TransactionService:
             }
         )
 
+    def create_installment_purchase(
+        self, dto: CreateTransactionDTO, installments: int
+    ) -> list[Transaction]:
+        from apps.common.exceptions import ValidationDomainError
+
+        errors: dict[str, list[str]] = {}
+        if installments < 2:
+            errors["installments"] = ["Mínimo de 2 parcelas."]
+        if dto.amount <= Decimal("0"):
+            errors["amount"] = ["Valor deve ser maior que zero."]
+        if not dto.category_id:
+            errors["category"] = ["Categoria é obrigatória para despesas."]
+
+        pm = None
+        if not dto.payment_method_id:
+            errors["payment_method"] = ["Forma de pagamento é obrigatória."]
+        else:
+            pm = PaymentMethodRepository.get_with_card(
+                dto.payment_method_id, dto.user_id
+            )
+            if pm.card is None or pm.card_function != CardFunction.CREDIT:
+                errors["payment_method"] = [
+                    "Parcelamento só é permitido em cartão de crédito."
+                ]
+
+        if errors or pm is None or pm.card is None:
+            raise ValidationDomainError(errors)
+
+        per_installment = (dto.amount / installments).quantize(
+            Decimal("0.01"), rounding=ROUND_FLOOR
+        )
+        last_installment = dto.amount - per_installment * (installments - 1)
+        base_year, base_month = competence_for_purchase(
+            pm.card.closing_day, dto.date
+        )
+
+        with db_transaction.atomic():
+            debt = DebtRepository.create(
+                {
+                    "user_id": dto.user_id,
+                    "debt_type": "credit_card",
+                    "origin": DebtOrigin.CARD_PURCHASE,
+                    "creditor": dto.description,
+                    "payment_method_id": dto.payment_method_id,
+                    "installment_current": 0,
+                    "installment_total": installments,
+                    "installment_amount": per_installment,
+                    "total_amount": dto.amount,
+                    "start_date": dto.date,
+                }
+            )
+            txs: list[Transaction] = []
+            for number in range(1, installments + 1):
+                year, month = add_months(base_year, base_month, number - 1)
+                amount = (
+                    last_installment
+                    if number == installments
+                    else per_installment
+                )
+                txs.append(
+                    self._tx.create(
+                        {
+                            "user_id": dto.user_id,
+                            "type": dto.type,
+                            "kind": dto.kind,
+                            "category_id": dto.category_id,
+                            "payment_method_id": dto.payment_method_id,
+                            "description": dto.description,
+                            "amount": amount,
+                            "date": dto.date,
+                            "year": year,
+                            "month": month,
+                            "is_paid": False,
+                            "debt_id": debt.id,
+                            "installment_current": number,
+                            "installment_total": installments,
+                        }
+                    )
+                )
+        return txs
+
     def toggle_paid(self, tx_id: int, user_id: int) -> Transaction:
         tx = self._tx.get_by_id(tx_id, user_id)
         if tx.type == TransactionType.INCOME:
@@ -241,6 +326,16 @@ class TransactionService:
     def delete(self, tx_id: int, user_id: int) -> None:
         tx = self._tx.get_by_id(tx_id, user_id)
         tx.delete()
+
+
+class DebtService:
+    def delete(self, debt_id: int, user_id: int) -> None:
+        debt = DebtRepository.get_by_id(debt_id, user_id)
+        with db_transaction.atomic():
+            if debt.origin == DebtOrigin.CARD_PURCHASE:
+                DebtRepository.delete_card_debt(debt)
+            else:
+                debt.delete()
 
 
 class MonthSummaryService:
