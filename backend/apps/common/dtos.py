@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
@@ -54,10 +54,21 @@ class SimulationResultDTO:
 
 
 @dataclass
+class PendingVariableDTO:
+    id: int
+    description: str
+    suggested_amount: str | None
+    category_id: int | None
+    payment_method_id: int | None
+    due_day: int
+
+
+@dataclass
 class GenerationResultDTO:
     created: int
     skipped: int
     completed_templates: list[int]
+    pending_variables: list[PendingVariableDTO] = field(default_factory=list)
 
 
 @dataclass
