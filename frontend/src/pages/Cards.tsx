@@ -11,14 +11,22 @@ import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ColorPicker from '@/components/ui/ColorPicker'
 import { toast } from '@/components/ui/Toast'
-import type { Card, CardInvoice, PaginatedResponse } from '@/types/api'
-import { Plus, Pencil, Trash2, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react'
+import type { CardSummary } from '@/types/api'
+import { Plus, Pencil, Trash2, CreditCard, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 const cardSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório'),
   color: z.string().min(1),
   closing_day: z.number().int().min(1).max(31),
   due_day: z.number().int().min(1).max(31),
+  limit: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, 'Valor inválido')
+    .optional()
+    .or(z.literal('')),
+  functions: z
+    .array(z.enum(['credit', 'debit']))
+    .min(1, 'Escolha ao menos uma função'),
 })
 
 type CardFormData = z.infer<typeof cardSchema>
@@ -36,28 +44,24 @@ export default function Cards() {
   const { year, month } = usePeriod()
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingCard, setEditingCard] = useState<Card | null>(null)
+  const [editingCardId, setEditingCardId] = useState<number | null>(null)
   const [deleteCardId, setDeleteCardId] = useState<number | null>(null)
   const [selectedColor, setSelectedColor] = useState('#818cf8')
 
-  const { data: cards, isLoading } = useQuery<PaginatedResponse<Card>>({
-    queryKey: ['cards'],
-    queryFn: () => api.get<PaginatedResponse<Card>>('/cards/').then((r) => r.data),
-  })
-
-  const { data: invoices } = useQuery<PaginatedResponse<CardInvoice>>({
-    queryKey: ['card-invoices', year, month],
+  const { data: summaries, isLoading } = useQuery<CardSummary[]>({
+    queryKey: ['cards-summary', year, month],
     queryFn: () =>
       api
-        .get<PaginatedResponse<CardInvoice>>('/cards/invoices/', { params: { year, month } })
+        .get<CardSummary[]>('/cards/summary/', { params: { year, month } })
         .then((r) => r.data),
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: CardFormData) => api.post('/cards/', data),
+    mutationFn: (data: CardFormData) =>
+      api.post('/cards/', { ...data, limit: data.limit || null }),
     onSuccess: () => {
       toast('Cartão criado', 'success')
-      queryClient.invalidateQueries({ queryKey: ['cards'] })
+      queryClient.invalidateQueries({ queryKey: ['cards-summary'] })
       setModalOpen(false)
       reset()
     },
@@ -66,12 +70,12 @@ export default function Cards() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: CardFormData }) =>
-      api.patch(`/cards/${id}/`, data),
+      api.patch(`/cards/${id}/`, { ...data, limit: data.limit || null }),
     onSuccess: () => {
       toast('Cartão atualizado', 'success')
-      queryClient.invalidateQueries({ queryKey: ['cards'] })
+      queryClient.invalidateQueries({ queryKey: ['cards-summary'] })
       setModalOpen(false)
-      setEditingCard(null)
+      setEditingCardId(null)
       reset()
     },
     onError: () => toast('Erro ao atualizar cartão', 'error'),
@@ -81,17 +85,19 @@ export default function Cards() {
     mutationFn: (id: number) => api.delete(`/cards/${id}/`),
     onSuccess: () => {
       toast('Cartão removido', 'success')
-      queryClient.invalidateQueries({ queryKey: ['cards'] })
+      queryClient.invalidateQueries({ queryKey: ['cards-summary'] })
       setDeleteCardId(null)
     },
     onError: () => toast('Erro ao remover', 'error'),
   })
 
-  const markInvoicePaidMutation = useMutation({
-    mutationFn: ({ id, is_paid }: { id: number; is_paid: boolean }) =>
-      api.patch(`/cards/invoices/${id}/`, { is_paid }),
+  const payInvoiceMutation = useMutation({
+    mutationFn: ({ cardId, is_paid }: { cardId: number; is_paid: boolean }) =>
+      api.post(`/cards/${cardId}/pay-invoice/`, { year, month, is_paid }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['card-invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['cards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['debts'] })
       toast('Fatura atualizada', 'success')
     },
     onError: () => toast('Erro ao atualizar fatura', 'error'),
@@ -99,26 +105,33 @@ export default function Cards() {
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CardFormData>({
     resolver: zodResolver(cardSchema),
-    defaultValues: { color: '#818cf8', closing_day: 3, due_day: 10 },
+    defaultValues: { color: '#818cf8', closing_day: 3, due_day: 10, limit: '', functions: ['credit'] },
   })
 
   const openCreate = () => {
-    setEditingCard(null)
+    setEditingCardId(null)
     setSelectedColor('#818cf8')
-    reset({ color: '#818cf8', closing_day: 3, due_day: 10 })
+    reset({ color: '#818cf8', closing_day: 3, due_day: 10, limit: '', functions: ['credit'] })
     setModalOpen(true)
   }
 
-  const openEdit = (card: Card) => {
-    setEditingCard(card)
-    setSelectedColor(card.color)
-    reset({ name: card.name, color: card.color, closing_day: card.closing_day, due_day: card.due_day })
+  const openEdit = (summary: CardSummary) => {
+    setEditingCardId(summary.card_id)
+    setSelectedColor(summary.color)
+    reset({
+      name: summary.name,
+      color: summary.color,
+      closing_day: summary.closing_day,
+      due_day: summary.due_day,
+      limit: summary.limit ?? '',
+      functions: summary.functions,
+    })
     setModalOpen(true)
   }
 
   const onSubmit = (data: CardFormData) => {
-    if (editingCard) {
-      updateMutation.mutate({ id: editingCard.id, data })
+    if (editingCardId !== null) {
+      updateMutation.mutate({ id: editingCardId, data })
     } else {
       createMutation.mutate(data)
     }
@@ -140,9 +153,9 @@ export default function Cards() {
       {/* Cards Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48" />)}
         </div>
-      ) : !cards?.results.length ? (
+      ) : !summaries?.length ? (
         <EmptyState
           icon={<CreditCard size={32} />}
           title="Nenhum cartão cadastrado"
@@ -150,19 +163,18 @@ export default function Cards() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {cards.results.map((card) => {
-            const daysLeft = daysUntilDue(card.due_day)
-            const invoice = invoices?.results.find((inv) => inv.card === card.id)
+          {summaries.map((summary) => {
+            const daysLeft = daysUntilDue(summary.due_day)
             const isWarning = daysLeft <= 5
 
             return (
               <div
-                key={card.id}
+                key={summary.card_id}
                 className="relative overflow-hidden rounded-2xl border border-border-subtle bg-surface p-5"
-                style={{ borderLeftColor: card.color, borderLeftWidth: 3 }}
+                style={{ borderLeftColor: summary.color, borderLeftWidth: 3 }}
               >
                 {/* Warning badge */}
-                {isWarning && !invoice?.is_paid && (
+                {isWarning && !summary.invoice.is_paid && (
                   <div className="mb-3 flex items-center gap-1.5 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
                     <AlertCircle size={12} />
                     Vence em {daysLeft} dia{daysLeft !== 1 ? 's' : ''}
@@ -173,26 +185,31 @@ export default function Cards() {
                   <div className="flex items-center gap-2">
                     <div
                       className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                      style={{ backgroundColor: `${card.color}20`, color: card.color }}
+                      style={{ backgroundColor: `${summary.color}20`, color: summary.color }}
                     >
-                      {card.name.charAt(0)}
+                      {summary.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-semibold text-text-primary">{card.name}</p>
+                      <p className="font-semibold text-text-primary">{summary.name}</p>
                       <p className="text-xs text-text-muted">
-                        Fecha dia {card.closing_day} · Vence dia {card.due_day}
+                        Fecha dia {summary.closing_day} · Vence dia {summary.due_day}
                       </p>
+                      {summary.functions.length > 0 && (
+                        <p className="text-xs text-text-muted capitalize">
+                          {summary.functions.map((f) => (f === 'credit' ? 'Crédito' : 'Débito')).join(' · ')}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => openEdit(card)}
+                      onClick={() => openEdit(summary)}
                       className="text-text-muted hover:text-info transition-colors"
                     >
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => setDeleteCardId(card.id)}
+                      onClick={() => setDeleteCardId(summary.card_id)}
                       className="text-text-muted hover:text-danger transition-colors"
                     >
                       <Trash2 size={14} />
@@ -200,36 +217,73 @@ export default function Cards() {
                   </div>
                 </div>
 
-                {invoice ? (
-                  <div className="flex items-center justify-between rounded-xl bg-elevated p-3">
-                    <div>
-                      <p className="text-xs text-text-muted">Fatura</p>
-                      <MoneyText value={invoice.amount} className="font-semibold text-text-primary" />
+                {/* Barra de limite */}
+                {summary.limit && (
+                  <div className="mb-3">
+                    <div className="mb-1 flex justify-between text-xs text-text-muted">
+                      <span>Comprometido</span>
+                      <span>
+                        <MoneyText value={summary.committed} /> / <MoneyText value={summary.limit} />
+                      </span>
                     </div>
-                    <button
-                      onClick={() => markInvoicePaidMutation.mutate({ id: invoice.id, is_paid: !invoice.is_paid })}
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors"
-                      style={{
-                        backgroundColor: invoice.is_paid ? '#34d39920' : '#94a3b820',
-                        color: invoice.is_paid ? '#34d399' : '#94a3b8',
-                      }}
-                    >
-                      {invoice.is_paid ? (
-                        <>
-                          <CheckCircle2 size={12} />
-                          Paga
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle size={12} />
-                          Pendente
-                        </>
-                      )}
-                    </button>
+                    <div className="h-2 overflow-hidden rounded-full bg-elevated">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          Number(summary.committed_pct) >= 90
+                            ? 'bg-danger'
+                            : Number(summary.committed_pct) >= 70
+                              ? 'bg-warning'
+                              : 'bg-accent'
+                        }`}
+                        style={{ width: `${Math.min(100, Number(summary.committed_pct ?? 0))}%` }}
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-text-muted">Sem fatura para este mês</p>
                 )}
+
+                {/* Fatura do mês */}
+                <div className="flex items-center justify-between rounded-xl bg-elevated p-3">
+                  <div>
+                    <p className="text-xs text-text-muted">
+                      Fatura · {new Date(summary.invoice.cycle_start + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      {' – '}
+                      {new Date(summary.invoice.cycle_end + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    </p>
+                    <MoneyText
+                      value={
+                        summary.invoice.is_paid && summary.invoice.snapshot_amount
+                          ? summary.invoice.snapshot_amount
+                          : summary.invoice.amount
+                      }
+                      className="font-semibold text-text-primary"
+                    />
+                    {summary.invoice.divergent && (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-lg bg-warning/10 px-2 py-0.5 text-xs text-warning">
+                        <AlertTriangle size={11} />
+                        valor divergente
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() =>
+                      payInvoiceMutation.mutate({
+                        cardId: summary.card_id,
+                        is_paid: !summary.invoice.is_paid,
+                      })
+                    }
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors"
+                    style={{
+                      backgroundColor: summary.invoice.is_paid ? '#34d39920' : '#94a3b820',
+                      color: summary.invoice.is_paid ? '#34d399' : '#94a3b8',
+                    }}
+                  >
+                    {summary.invoice.is_paid ? (
+                      <><CheckCircle2 size={12} /> Paga</>
+                    ) : (
+                      <><AlertCircle size={12} /> Pendente</>
+                    )}
+                  </button>
+                </div>
               </div>
             )
           })}
@@ -241,7 +295,7 @@ export default function Cards() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 shadow-2xl">
             <h2 className="mb-5 text-base font-semibold text-text-primary">
-              {editingCard ? 'Editar Cartão' : 'Novo Cartão'}
+              {editingCardId !== null ? 'Editar Cartão' : 'Novo Cartão'}
             </h2>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
@@ -285,10 +339,48 @@ export default function Cards() {
                 </div>
               </div>
 
+              {/* Limite */}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-text-muted">
+                  Limite (R$, opcional)
+                </label>
+                <input
+                  {...register('limit')}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:border-accent/50 focus:outline-none"
+                />
+                {errors.limit && <p className="mt-1 text-xs text-danger">{errors.limit.message}</p>}
+              </div>
+
+              {/* Funções */}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-text-muted">Funções</label>
+                <div className="flex gap-4">
+                  {(['credit', 'debit'] as const).map((fn) => (
+                    <label key={fn} className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={fn}
+                        {...register('functions')}
+                        className="h-4 w-4 rounded border-border-subtle accent-accent"
+                      />
+                      <span className="text-sm text-text-muted">
+                        {fn === 'credit' ? 'Crédito' : 'Débito'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {errors.functions && (
+                  <p className="mt-1 text-xs text-danger">{errors.functions.message}</p>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setModalOpen(false); setEditingCard(null); reset() }}
+                  onClick={() => { setModalOpen(false); setEditingCardId(null); reset() }}
                   className="rounded-xl px-4 py-2 text-sm text-text-muted hover:bg-elevated transition-colors"
                 >
                   Cancelar

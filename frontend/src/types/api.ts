@@ -1,6 +1,6 @@
-// TODO: regenerate via `npm run gen:types` once backend is running at localhost:8000
 // Manual types mirroring section 6 of FINFLOW_PLANO_IMPLEMENTACAO_v2.md
 // DO NOT diverge from the section 6 contracts — these are frozen inter-agent interfaces.
+// Last regenerated: 2026-06-12 — fields updated from OpenAPI schema for cards integration.
 
 export interface User {
   id: number
@@ -27,6 +27,13 @@ export interface PaymentMethod {
   color: string
   is_default: boolean
   is_archived: boolean
+  card_function: 'credit' | 'debit' | null
+  card_detail: {
+    id: number
+    name: string
+    color: string
+    closing_day: number
+  } | null
 }
 
 export interface Transaction {
@@ -46,6 +53,7 @@ export interface Transaction {
   recurring_source: number | null
   installment_current: number | null
   installment_total: number | null
+  installments?: number
 }
 
 export interface RecurringExpense {
@@ -169,6 +177,9 @@ export interface Card {
   color: string
   closing_day: number
   due_day: number
+  limit: string | null
+  functions: Array<'credit' | 'debit'>
+  active_functions: string
 }
 
 export interface CardInvoice {
@@ -179,6 +190,30 @@ export interface CardInvoice {
   amount: string
   due_date: string
   is_paid: boolean
+}
+
+export interface InvoiceSummary {
+  amount: string
+  snapshot_amount: string | null
+  is_paid: boolean
+  divergent: boolean
+  cycle_start: string
+  cycle_end: string
+  due_date: string
+}
+
+export interface CardSummary {
+  card_id: number
+  name: string
+  color: string
+  closing_day: number
+  due_day: number
+  functions: Array<'credit' | 'debit'>
+  limit: string | null
+  committed: string
+  committed_pct: string | null
+  open_cycle_spend: string
+  invoice: InvoiceSummary
 }
 
 export interface Debt {
