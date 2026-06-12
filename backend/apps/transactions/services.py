@@ -33,16 +33,36 @@ class RecurringExpenseService:
     def generate_for_month(
         self, user_id: int, year: int, month: int
     ) -> GenerationResultDTO:
+        from apps.common.dtos import PendingVariableDTO
+
         templates = self._recurring.list_active(user_id)
         created = 0
         skipped = 0
         completed: list[int] = []
+        pending_variables: list[PendingVariableDTO] = []
 
         for template in templates:
             if self._recurring.exists_transaction_for_month(
                 template.id, user_id, year, month
             ):
                 skipped += 1
+                continue
+
+            if template.is_variable:
+                pending_variables.append(
+                    PendingVariableDTO(
+                        id=template.id,
+                        description=template.description,
+                        suggested_amount=(
+                            str(template.default_amount)
+                            if template.default_amount is not None
+                            else None
+                        ),
+                        category_id=template.category_id,
+                        payment_method_id=template.payment_method_id,
+                        due_day=template.due_day,
+                    )
+                )
                 continue
 
             day = min(template.due_day, calendar.monthrange(year, month)[1])
@@ -76,7 +96,10 @@ class RecurringExpenseService:
             template.save()
 
         return GenerationResultDTO(
-            created=created, skipped=skipped, completed_templates=completed
+            created=created,
+            skipped=skipped,
+            completed_templates=completed,
+            pending_variables=pending_variables,
         )
 
 
