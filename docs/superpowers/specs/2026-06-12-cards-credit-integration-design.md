@@ -168,7 +168,8 @@ Lançamento com forma crédito + "Parcelado em N×" dispara, em transação atô
   Faturas (`CardInvoice`) são removidas com o cartão (comportamento atual, CASCADE).
 - **Excluir dívida de cartão**: remove apenas parcelas não pagas; parcelas pagas são
   desvinculadas (`debt=NULL`) e preservadas.
-- **Editar dívida de cartão** (valor/parcelas): recalcula apenas parcelas não pagas.
+- **Editar dívida de cartão** (valor/parcelas): bloqueado no v1 — excluir e relançar.
+  (Recalcular parcelas não pagas fica para versão futura.)
 - **Dívidas manuais** (`origin=manual`): comportamento atual intacto, incluindo o
   botão `advance`.
 
@@ -267,6 +268,7 @@ Lançamento com forma crédito + "Parcelado em N×" dispara, em transação atô
 | Forma de cartão arquivada manualmente | Some do seletor de lançamentos; histórico do cartão intacto |
 | Trocar payment_method de transação existente | Recalcula competência (e fatura dos dois lados) |
 | Excluir dívida de cartão | Remove parcelas não pagas; pagas desvinculadas e mantidas |
+| Editar dívida de cartão | Bloqueado no v1 (erro de validação); excluir e relançar |
 | Despagar fatura | Reverte is_paid das parcelas, recalcula progresso das dívidas, limpa snapshot |
 | Virada de ano (compra dez → fatura jan) | Competência year+1; testes cobrem |
 
