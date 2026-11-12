@@ -11,15 +11,22 @@ const cq = (px: number) => `${((px / 340) * 100).toFixed(2)}cqw`
 export default function MetalCard({ card }: { card: MetalCardData }) {
   const host = useRef<HTMLDivElement>(null)
   const plate = useRef<HTMLDivElement>(null)
-  const canvas = useRef<HTMLCanvasElement>(null)
   const b = BANKS[card.bank]
 
   useEffect(() => {
-    const c = canvas.current
-    if (!host.current || !plate.current || !c) return
+    if (!host.current || !plate.current) return
+    // canvas novo a cada mount (StrictMode: mount→cleanup→mount não reaproveita contexto perdido)
+    const c = document.createElement('canvas')
+    c.setAttribute('aria-hidden', 'true')
+    c.className = 'pointer-events-none absolute inset-0 h-full w-full'
+    c.style.mixBlendMode = 'screen'
+    plate.current.insertBefore(c, plate.current.firstChild)
     const dispose = mountMetal(host.current, plate.current, c)
     if (!dispose) c.remove() // sem WebGL2: camada não montada
-    return dispose ?? undefined
+    return () => {
+      dispose?.()
+      c.remove()
+    }
   }, [])
 
   return (
@@ -37,12 +44,6 @@ export default function MetalCard({ card }: { card: MetalCardData }) {
           boxShadow: '0 26px 50px -18px rgba(0,0,0,.75), 0 8px 18px -8px rgba(0,0,0,.5)',
         }}
       >
-        <canvas
-          ref={canvas}
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          style={{ mixBlendMode: 'screen' }}
-          aria-hidden
-        />
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -52,8 +53,13 @@ export default function MetalCard({ card }: { card: MetalCardData }) {
         />
         <div className="relative z-[1] flex h-full flex-col justify-between" style={{ padding: `${cq(20)} ${cq(22)}` }}>
           <div className="flex items-start justify-between">
-            <span style={{ fontSize: cq(24), lineHeight: 1, fontWeight: 700, fontFamily: 'Manrope, system-ui, sans-serif' }}>
-              {b.label}
+            <span
+              style={{
+                fontSize: cq(24), lineHeight: 1, fontWeight: 700, fontFamily: 'Manrope, system-ui, sans-serif',
+                ...b.wmStyle, ...(b.wmStyle?.fontSize && { fontSize: cq(parseFloat(b.wmStyle.fontSize)) }),
+              }}
+            >
+              {b.wm ?? b.label}
             </span>
             <svg style={{ width: cq(22), height: cq(22), opacity: 0.85 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
               <path d="M7 8a6 6 0 0 1 0 8M11 5.5a10 10 0 0 1 0 13M15 3a14 14 0 0 1 0 18" />
