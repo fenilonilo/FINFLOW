@@ -4,6 +4,7 @@ import pytest
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import DeviceSession
@@ -117,3 +118,30 @@ def test_last_seen_not_rewritten_within_a_minute(user):
     assert first > old
     c.get("/api/v1/auth/me/")
     assert DeviceSession.objects.get().last_seen_at == first
+
+
+def test_logout_without_refresh_creates_no_outstanding_token(user):
+    t = login(user, "A")
+    before = OutstandingToken.objects.count()
+    assert as_token(t["access"]).post("/api/v1/auth/logout/", {}).status_code == 205
+    assert OutstandingToken.objects.count() == before
+
+
+def test_logout_non_object_body_is_400(user):
+    t = login(user, "A")
+    resp = as_token(t["access"]).post("/api/v1/auth/logout/", [1], format="json")
+    assert resp.status_code == 400
+
+
+def test_refresh_without_sid_is_401(user):
+    refresh = str(RefreshToken.for_user(user))
+    resp = APIClient().post("/api/v1/auth/token/refresh/", {"refresh": refresh})
+    assert resp.status_code == 401
+
+
+def test_revoking_own_session_invalidates_same_access(user):
+    t = login(user, "A")
+    sid = RefreshToken(t["refresh"])["sid"]
+    c = as_token(t["access"])
+    assert c.delete(f"/api/v1/auth/sessions/{sid}/").status_code == 204
+    assert c.get("/api/v1/auth/me/").status_code == 401

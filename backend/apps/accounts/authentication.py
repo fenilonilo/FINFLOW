@@ -5,7 +5,7 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 
 class SessionJWTAuthentication(JWTAuthentication):
-    """Token com `sid` revogado/inexistente e rejeitado; sem `sid` (legado) passa."""
+    """Sid revogado/inexistente e rejeitado; access sem sid (legado) passa."""
 
     def authenticate(self, request):
         # import tardio: services -> common.exceptions importa rest_framework.views
@@ -25,7 +25,7 @@ class SessionTokenRefreshSerializer(TokenRefreshSerializer):
         from apps.accounts.services import SessionService
 
         sid = self.token_class(attrs["refresh"]).get("sid")
-        if sid is not None and not SessionService.is_active(sid):
+        if sid is None or not SessionService.is_active(sid):
             raise InvalidToken("Sessão encerrada.")
         return super().validate(attrs)
 

@@ -63,10 +63,13 @@ class LogoutView(APIView):
 
     @extend_schema(request=LogoutSerializer, responses={205: None})
     def post(self, request):
-        try:
-            RefreshToken(request.data.get("refresh")).blacklist()
-        except TokenError:
-            pass
+        data = LogoutSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        if refresh := data.validated_data.get("refresh"):
+            try:
+                RefreshToken(refresh).blacklist()
+            except TokenError:
+                pass
         sid = _current_sid(request)
         if sid is not None:
             SessionService.revoke(request.user, sid)
