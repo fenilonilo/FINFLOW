@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 
 from drf_spectacular.utils import extend_schema_field
@@ -141,6 +142,17 @@ class StatementImportSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=["credit", "debit"])
     year = serializers.IntegerField(required=False)
     month = serializers.IntegerField(required=False, min_value=1, max_value=12)
+    dry_run = serializers.BooleanField(required=False, default=False)
+    categories = serializers.CharField(required=False)
+
+    def validate_categories(self, value: str) -> dict[int, int | None]:
+        try:
+            raw = json.loads(value)
+            return {int(k): (None if v is None else int(v)) for k, v in raw.items()}
+        except (ValueError, TypeError, AttributeError):
+            raise serializers.ValidationError(
+                "Use um JSON {indice: id_categoria|null}."
+            ) from None
 
 
 class GenerateVariableItemSerializer(serializers.Serializer):

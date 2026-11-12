@@ -166,3 +166,95 @@ def test_credit_import_refund_cancels_matching_purchase(monkeypatch):
     status = {i["description"]: i["status"] for i in result["items"]}
     assert status["Pagamento recebido"] == "ignored"
     assert result["skipped"] == 5
+
+
+def _setup_two_rows(monkeypatch):
+    user = UserFactory()
+    card = CardFactory(user=user)
+    d = datetime.date(2025, 3, 5)
+    rows = [
+        ParsedRow(d, "LOJA A", Decimal("10"), True),
+        ParsedRow(d, "LOJA B", Decimal("20"), True),
+    ]
+    monkeypatch.setattr(services, "parse_statement", lambda b, f: rows)
+    sent: list[list[str]] = []
+
+    def fake_classify(descriptions, categories):
+        sent.append(list(descriptions))
+        return [None] * len(descriptions)
+
+    monkeypatch.setattr(services, "classify", fake_classify)
+    return user, card, sent
+
+
+def test_dry_run_persists_nothing_and_returns_index_and_category_id(monkeypatch):
+    from apps.core.models import Category
+    from apps.transactions.models import Transaction
+
+    user, card, _ = _setup_two_rows(monkeypatch)
+
+    result = StatementImportService().import_file(
+        user.id, b"", "f.csv", card.id, "credit", 2025, 3, dry_run=True
+    )
+
+    assert Transaction.objects.filter(user=user).count() == 0
+    assert not Category.objects.filter(user=user, name="Outros").exists()
+    assert result["created"] == 2
+    assert result["total"] == "30.00"
+    assert [i["index"] for i in result["items"]] == [0, 1]
+    assert all(i["category_id"] is not None for i in result["items"])
+
+
+def test_confirm_uses_chosen_category_and_skips_llm_for_it(monkeypatch):
+    from apps.transactions.models import Transaction
+
+    user, card, sent = _setup_two_rows(monkeypatch)
+    cat = CategoryFactory(user=user, name="Lazer")
+
+    result = StatementImportService().import_file(
+        user.id,
+        b"",
+        "f.csv",
+        card.id,
+        "credit",
+        2025,
+        3,
+        categories={0: cat.id},
+    )
+
+    assert Transaction.objects.get(description="LOJA A").category_id == cat.id
+    assert result["items"][0]["category_id"] == cat.id
+    assert result["items"][0]["category"] == "Lazer"
+    assert sent == [["LOJA B"]]
+
+
+def test_confirm_null_category_means_no_category(monkeypatch):
+    from apps.transactions.models import Transaction
+
+    user, card, _ = _setup_two_rows(monkeypatch)
+
+    StatementImportService().import_file(
+        user.id, b"", "f.csv", card.id, "credit", 2025, 3, categories={1: None}
+    )
+
+    assert Transaction.objects.get(description="LOJA B").category_id is None
+
+
+def test_confirm_with_other_users_category_raises(monkeypatch):
+    from apps.common.exceptions import ValidationDomainError
+
+    user, card, _ = _setup_two_rows(monkeypatch)
+    foreign = CategoryFactory(user=UserFactory())
+
+    with pytest.raises(ValidationDomainError) as exc:
+        StatementImportService().import_file(
+            user.id,
+            b"",
+            "f.csv",
+            card.id,
+            "credit",
+            2025,
+            3,
+            categories={0: foreign.id},
+        )
+    assert "categories" in exc.value.errors

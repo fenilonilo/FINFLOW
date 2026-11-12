@@ -36,3 +36,4 @@
 | Import | Importação aceita PDF da fatura Inter (pypdf) | Inter não exporta CSV de fatura |
 | Cartões | Card.bank (enum) e Card.is_active; PMs de cartão inativo somem das listagens (exceto include_archived) e importação é bloqueada | Permite desativar cartão sem perder histórico |
 | Cartões | Fatura de cartão deixa de ser gasto fixo; R3/R4 removidos, só itens importados contam. Campo RecurringExpense.card mantido sem uso | Evita duplicação fixo×itens da fatura |
+| Import | POST /imports/statement/ aceita dry_run e categories (JSON índice→id|null); itens ganham index/category_id; dry-run 200 sem persistir | Prévia na tela Importar sem duplicar a lógica (atomic + set_rollback) |

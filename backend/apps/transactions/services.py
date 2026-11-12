@@ -525,9 +525,12 @@ class StatementImportService:
         kind: str,
         year: int | None = None,
         month: int | None = None,
+        categories: dict[int, int | None] | None = None,
+        dry_run: bool = False,
     ) -> dict[str, Any]:
         from apps.common.exceptions import ValidationDomainError
 
+        chosen = categories or {}
         if kind not in (CardFunction.CREDIT, CardFunction.DEBIT):
             raise ValidationDomainError({"kind": ["Use 'credit' ou 'debit'."]})
         if kind == CardFunction.CREDIT and not (year and month):
@@ -539,9 +542,11 @@ class StatementImportService:
             raise ValidationDomainError({"card": ["Cartão inativo."]})
         pm = CardPaymentMethodRepository.get_or_create_function(card, kind)
         rows = parse_statement(file_bytes, filename)
-        categories = {
-            c.name.lower(): c for c in CategoryRepository.list_by_user(user_id)
-        }
+        user_cats = CategoryRepository.list_by_user(user_id)
+        by_id = {c.id: c for c in user_cats}
+        if any(cid is not None and cid not in by_id for cid in chosen.values()):
+            raise ValidationDomainError({"categories": ["Categoria inválida."]})
+        categories = {c.name.lower(): c for c in user_cats}
 
         refunded = self._pair_refunds(rows) if kind == CardFunction.CREDIT else set()
         # LLM só para despesas sem palavra-chave; uma chamada por importação.
@@ -550,6 +555,7 @@ class StatementImportService:
                 r.description
                 for i, r in enumerate(rows)
                 if r.outflow
+                and i not in chosen
                 and i not in refunded
                 and not _IGNORE_RE.search(r.description)
                 and _keyword_category(r.description) is None
@@ -587,7 +593,9 @@ class StatementImportService:
                     "date": row.date.isoformat(),
                     "description": row.description,
                     "amount": str(row.amount.quantize(Decimal("0.01"))),
+                    "index": idx,
                     "category": None,
+                    "category_id": None,
                     "status": "created",
                 }
                 if idx in refunded:
@@ -601,12 +609,14 @@ class StatementImportService:
                 ):
                     item["status"] = "duplicate"
                 else:
-                    category = (
-                        None
-                        if tx_type == TransactionType.INCOME
-                        else self._category_for(row, categories, user_id, llm)
-                    )
+                    if idx in chosen:
+                        category = by_id.get(chosen[idx]) if chosen[idx] else None
+                    elif tx_type == TransactionType.INCOME:
+                        category = None
+                    else:
+                        category = self._category_for(row, categories, user_id, llm)
                     item["category"] = category.name if category else None
+                    item["category_id"] = category.id if category else None
                     self._tx.create(
                         {
                             "user_id": user_id,
@@ -631,6 +641,8 @@ class StatementImportService:
                 if item["status"] != "created":
                     skipped += 1
                 items.append(item)
+            if dry_run:
+                db_transaction.set_rollback(True)
 
         return {
             "created": created,

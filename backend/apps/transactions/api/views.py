@@ -200,7 +200,7 @@ class GenerateVariablesView(viewsets.ViewSet):
 class StatementImportView(APIView):
     parser_classes = [MultiPartParser]
 
-    @extend_schema(request=StatementImportSerializer, responses={201: dict})
+    @extend_schema(request=StatementImportSerializer, responses={200: dict, 201: dict})
     def post(self, request):
         s = StatementImportSerializer(data=request.data)
         s.is_valid(raise_exception=True)
@@ -213,5 +213,10 @@ class StatementImportView(APIView):
             d["kind"],
             d.get("year"),
             d.get("month"),
+            d.get("categories"),
+            d["dry_run"],
         )
-        return Response(result, status=status.HTTP_201_CREATED)
+        return Response(
+            result,
+            status=status.HTTP_200_OK if d["dry_run"] else status.HTTP_201_CREATED,
+        )
