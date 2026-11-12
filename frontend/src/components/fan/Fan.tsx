@@ -45,6 +45,7 @@ export default function Fan({ items, onChange, size = 'sm', visible = 4, spread 
   useEffect(() => {
     const el = root.current
     if (!el || n === 0) return
+    cb.current(0)
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
     const vis = Math.min(visible, n)
     let order = Array.from({ length: n }, (_, i) => i)
@@ -132,7 +133,7 @@ export default function Fan({ items, onChange, size = 'sm', visible = 4, spread 
       commit(sendToBack(order)); putAll()
     }
     function toFront() {
-      if (n < 2 || C[order[0]].fly) return
+      if (n < 2 || C.some(c => c.fly)) return
       commit(bringToFront(order)); putAll({ kind: 'settle' })
     }
     api.current = { toBack: () => toBack(), toFront }

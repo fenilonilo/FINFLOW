@@ -12,22 +12,44 @@ describe('sendToBack', () => {
 })
 
 describe('Fan', () => {
-  it('Enter manda o da frente para trás; ArrowLeft traz o último de volta', () => {
+  it('Enter manda o da frente para trás; teclas durante o voo são ignoradas', () => {
     const onChange = vi.fn()
     render(<Fan items={items} onChange={onChange} />)
     const g = screen.getByRole('group')
     expect(g).toHaveClass('fan')
     fireEvent.keyDown(g, { key: 'Enter' })
     expect(onChange).toHaveBeenLastCalledWith(1)
+    // ArrowLeft durante o voo é ignorado de propósito (guarda C.some(fly))
     fireEvent.keyDown(g, { key: 'ArrowLeft' })
-    expect(onChange).toHaveBeenLastCalledWith(0)
+    expect(onChange).toHaveBeenLastCalledWith(1)
   })
 
-  it('com 1 item, teclas não chamam onChange', () => {
+  it('com 1 item, teclas não disparam novos onChange', () => {
     const onChange = vi.fn()
     render(<Fan items={items.slice(0, 1)} onChange={onChange} />)
+    onChange.mockClear()
     fireEvent.keyDown(screen.getByRole('group'), { key: 'Enter' })
     fireEvent.keyDown(screen.getByRole('group'), { key: 'ArrowLeft' })
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('reporta 0 na montagem e quando a quantidade de itens muda', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<Fan items={items} onChange={onChange} />)
+    expect(onChange).toHaveBeenLastCalledWith(0)
+    onChange.mockClear()
+    rerender(<Fan items={items.slice(0, 2)} onChange={onChange} />)
+    expect(onChange).toHaveBeenCalledWith(0)
+  })
+
+  it('ArrowLeft no início traz o último (2); acessibilidade e size big', () => {
+    const onChange = vi.fn()
+    render(<Fan items={items} onChange={onChange} size="big" />)
+    const g = screen.getByRole('group')
+    expect(g).toHaveAttribute('tabindex', '0')
+    expect(g).toHaveAttribute('aria-label')
+    expect(g).toHaveClass('big')
+    fireEvent.keyDown(g, { key: 'ArrowLeft' })
+    expect(onChange).toHaveBeenLastCalledWith(2)
   })
 })
