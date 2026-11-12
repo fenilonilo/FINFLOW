@@ -28,7 +28,7 @@ export default function ProfileCard() {
         <>
           <div className="pf-photo">
             {user?.avatar_url ? (
-              <img className="ph" src={user.avatar_url} alt="" />
+              <img className="pf-img" src={user.avatar_url} alt="" />
             ) : (
               <svg className="sil" viewBox="0 0 100 120" aria-hidden="true">
                 <defs><linearGradient id="silg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5fbf6e" /><stop offset="1" stopColor="#1d4a26" /></linearGradient></defs>

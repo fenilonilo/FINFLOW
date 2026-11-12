@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import AppShell, { useBodyScreen } from '@/components/shell/AppShell'
-import PageHeader from '@/components/shell/PageHeader'
 import BullBackground from '@/components/bull/BullBackground'
 import Login from '@/pages/Login'
 import Lancamentos from '@/pages/lanc/Lancamentos'
 import Importar from '@/pages/Importar'
 import Visao from '@/pages/visao/Visao'
+import Conta from '@/pages/Conta'
 import Ajustes from '@/pages/ajustes/Ajustes'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -22,13 +22,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// TODO Tasks 11-16: replace with the real pages
-const Placeholder = ({ eyebrow, title }: { eyebrow: string; title: string }) => <PageHeader eyebrow={eyebrow} title={title} />
-const ACCOUNT_TABS = ['profile', 'devices']
-const AccountTab = () => {
-  const tab = useParams().tab ?? ''
-  return ACCOUNT_TABS.includes(tab) ? <Placeholder eyebrow="Conta" title={tab} /> : <Navigate to="/account/profile" replace />
-}
 
 export default function App() {
   useBodyScreen()
@@ -50,7 +43,7 @@ export default function App() {
         <Route path="/settings" element={<Navigate to="/settings/categories" replace />} />
         <Route path="/settings/:tab" element={<Ajustes />} />
         <Route path="/account" element={<Navigate to="/account/profile" replace />} />
-        <Route path="/account/:tab" element={<AccountTab />} />
+        <Route path="/account/:tab" element={<Conta />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

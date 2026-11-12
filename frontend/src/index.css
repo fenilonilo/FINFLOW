@@ -121,7 +121,7 @@ body::after {
 .bk-h { display: flex; align-items: center; gap: 10px; padding: 2px 2px 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
 .bk-av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; overflow: hidden; color: #d9f5dd; background: linear-gradient(135deg,#3f9a50,#1d4a26); }
 .bk-av svg { width: 17px; height: 17px; }
-.bk-av img, .pf-photo img.ph { width: 100%; height: 100%; object-fit: cover; }
+.bk-av img, .pf-photo img.pf-img { width: 100%; height: 100%; object-fit: cover; }
 .bk-h b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 17px; line-height: 1.1; }
 .bk-h small { display: block; font-size: 11px; color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
 .pf-photo { position: relative; flex: 1; border-radius: 13px; overflow: hidden;
@@ -130,7 +130,7 @@ body::after {
   -webkit-mask: radial-gradient(75% 55% at 50% 36%, #000, transparent 78%); mask: radial-gradient(75% 55% at 50% 36%, #000, transparent 78%); opacity: .35; }
 .pf-photo::after { content: ''; position: absolute; inset: auto 0 0; height: 58%; background: linear-gradient(transparent, rgba(4,9,5,.94)); }
 .pf-photo .sil { position: absolute; left: 50%; top: 14%; width: 88%; transform: translateX(-50%); stroke: rgba(160,240,170,.4); stroke-width: .6; }
-.pf-photo img.ph { position: absolute; inset: 0; }
+.pf-photo img.pf-img { position: absolute; inset: 0; }
 .pf-cam { position: absolute; top: 9px; right: 9px; z-index: 1; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--g); background: rgba(4,9,5,.7); border: 1px solid rgba(126,224,138,.3); }
 .pf-cam svg { width: 13px; height: 13px; }
 .pf-name { position: absolute; left: 12px; right: 12px; bottom: 11px; z-index: 1; }
@@ -304,3 +304,24 @@ body::after {
   .aj .cinfo { grid-template-columns: minmax(0, 1fr); }
   .aj .cbtn { grid-column: 1; grid-row: auto; flex-wrap: wrap; }
 }
+
+/* Conta */
+.conta .aj { width: min(560px, 100%); }
+.conta .tabs { width: auto; }
+.conta .tabs button { flex: 1; }
+.conta .mu { color: var(--mu); font-size: 14px; }
+.conta .me-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.conta .me-top b { display: block; font-weight: 600; }
+.conta .me-top small { display: block; color: var(--mu); font-size: 12px; margin: 2px 0 8px; }
+.conta .me-top .btn { padding: 7px 14px; font-size: 13px; }
+.conta .cph { position: relative; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; color: #d9f5dd; background: linear-gradient(135deg,#3f9a50,#1d4a26); box-shadow: 0 0 0 3px rgba(126,224,138,.12); flex: none; }
+.conta .cph > svg { width: 34px; height: 34px; }
+.conta .cph > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.conta .cph i { position: absolute; right: -3px; bottom: -3px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #0b140d; border: 1px solid rgba(126,224,138,.35); color: var(--g); }
+.conta .cph i svg { width: 14px; height: 14px; }
+.conta .field { display: block; margin-bottom: 12px; }
+.conta .field span { display: block; font-size: 12px; font-weight: 500; color: var(--mu); margin-bottom: 6px; }
+.conta .field input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.25); outline: none; transition: border-color .2s, box-shadow .2s; }
+.conta .field input:focus { border-color: rgba(126,224,138,.45); box-shadow: 0 0 0 4px rgba(126,224,138,.08); }
+.conta .ferr { margin-top: 4px; font-size: 12px; color: #f87171; }
+@media (max-width: 1099px) { .conta .aj { width: 100%; } }
