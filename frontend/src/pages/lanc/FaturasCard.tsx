@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Fan from '@/components/fan/Fan'
 import MetalCard from '@/components/card/MetalCard'
 import { usePayInvoice } from '@/api/cards'
@@ -10,6 +10,8 @@ import type { CardSummary } from '@/types/models'
 export default function FaturasCard({ cards, year, month }: { cards: CardSummary[]; year: number; month: number }) {
   const credit = cards.filter((c) => c.functions.includes('credit'))
   const [top, setTop] = useState(0)
+  const ids = credit.map((x) => x.card_id).join()
+  useEffect(() => setTop(0), [ids])
   const pay = usePayInvoice()
   const c = credit[top] ?? credit[0]
 
@@ -29,7 +31,7 @@ export default function FaturasCard({ cards, year, month }: { cards: CardSummary
 
   return (
     <div className="glass rise">
-      <div className="card-h"><h3>Faturas abertas</h3><span className="muted" style={{ fontSize: 12 }}>arraste o cartão para trocar</span></div>
+      <div className="card-h"><h3>Faturas abertas</h3>{credit.length > 1 && <span className="muted" style={{ fontSize: 12 }}>arraste o cartão para trocar</span>}</div>
       {!c ? (
         <p className="muted" style={{ fontSize: 13 }}>Nenhum cartão de crédito</p>
       ) : (

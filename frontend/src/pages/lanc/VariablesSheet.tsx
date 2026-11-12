@@ -10,9 +10,10 @@ interface Props {
   year: number
   month: number
   onClose: () => void
+  onDone: () => void
 }
 
-export default function VariablesSheet({ items, year, month, onClose }: Props) {
+export default function VariablesSheet({ items, year, month, onClose, onDone }: Props) {
   const gen = useGenerateVariables(year, month)
   const [vals, setVals] = useState<Record<number, string>>(() =>
     Object.fromEntries(items.map((i) => [i.id, i.suggested_amount ?? ''])),
@@ -23,6 +24,7 @@ export default function VariablesSheet({ items, year, month, onClose }: Props) {
     try {
       await gen.mutateAsync(items.map((i) => ({ recurring_id: i.id, amount: parseMoney(vals[i.id]) })))
       toast('Valores variáveis gerados', 'success')
+      onDone()
       onClose()
     } catch {
       toast('Erro ao gerar valores variáveis', 'error')

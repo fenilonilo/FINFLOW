@@ -25,6 +25,7 @@ export default function Lancamentos() {
   const [params, setParams] = useSearchParams()
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [pending, setPending] = useState<PendingVariable[]>([])
+  const [pendingOpen, setPendingOpen] = useState(false)
   const txs = useMonthTransactions(year, month)
   const summary = useMonthSummary(year, month)
   const recurring = useRecurring()
@@ -49,7 +50,7 @@ export default function Lancamentos() {
   async function generate() {
     try {
       const r = await genFixed.mutateAsync()
-      if (r.pending_variables?.length) setPending(r.pending_variables)
+      if (r.pending_variables?.length) { setPending(r.pending_variables); setPendingOpen(true) }
       else toast('Fixos do mês gerados', 'success')
     } catch {
       toast('Erro ao gerar fixos', 'error')
@@ -59,6 +60,7 @@ export default function Lancamentos() {
   const rec = recurring.data?.results ?? []
   const all = txs.data ?? []
   const ready = txs.data && recurring.data
+  const failed = txs.isError || recurring.isError
 
   return (
     <div className="lanc">
@@ -75,22 +77,22 @@ export default function Lancamentos() {
       <div className="lgrid">
         <div className="col">
           {ready ? (
-            <FixosCard txs={all} recurring={rec} onToggle={togglePaid} onGenerate={generate} generating={genFixed.isPending} />
-          ) : <Skeleton className="h-56" />}
+            <FixosCard txs={all} recurring={rec} onToggle={togglePaid} onGenerate={generate} generating={genFixed.isPending} hasPending={pending.length > 0} onPending={() => setPendingOpen(true)} />
+          ) : failed ? <p className="glass muted">Não foi possível carregar os fixos.</p> : <Skeleton className="h-56" />}
           {summary.data ? <ResumoCard s={summary.data} /> : <Skeleton className="h-48" />}
         </div>
         <div className="col">
           {cards.data ? <FaturasCard cards={cards.data} year={year} month={month} /> : <Skeleton className="h-56" />}
-          {ready ? <VencimentosCard txs={all} recurring={rec} today={today} /> : <Skeleton className="h-56" />}
+          {txs.data && recurring.data ? <VencimentosCard txs={all} recurring={rec} today={today} /> : <Skeleton className="h-56" />}
         </div>
-        {ready ? (
+        {txs.data ? (
           <Ledger txs={all} cats={cats.data?.results ?? []} pms={pms.data?.results ?? []} today={today} onEdit={setEditing} onTogglePaid={togglePaid} />
-        ) : <Skeleton className="h-96 movs" />}
+        ) : txs.isError ? <p className="glass muted movs">Não foi possível carregar as movimentações.</p> : <Skeleton className="h-96 movs" />}
       </div>
       <Sheet open={sheetOpen} onClose={closeSheet} title={editing ? 'Editar lançamento' : 'Novo lançamento'}>
         <TransactionForm key={editing?.id ?? 'new'} tx={editing ?? undefined} onDone={closeSheet} />
       </Sheet>
-      {pending.length > 0 && <VariablesSheet items={pending} year={year} month={month} onClose={() => setPending([])} />}
+      {pendingOpen && <VariablesSheet items={pending} year={year} month={month} onClose={() => setPendingOpen(false)} onDone={() => setPending([])} />}
     </div>
   )
 }

@@ -11,9 +11,11 @@ interface Props {
   onToggle: (tx: Transaction) => void
   onGenerate: () => void
   generating: boolean
+  hasPending?: boolean
+  onPending?: () => void
 }
 
-export default function FixosCard({ txs, recurring, onToggle, onGenerate, generating }: Props) {
+export default function FixosCard({ txs, recurring, onToggle, onGenerate, generating, hasPending, onPending }: Props) {
   const p = fixosProgress(txs)
   const [on, setOn] = useState(false)
   useEffect(() => {
@@ -43,12 +45,15 @@ export default function FixosCard({ txs, recurring, onToggle, onGenerate, genera
             <circle
               cx="42" cy="42" r="36" stroke="#7ee08a" strokeWidth="6" fill="none" strokeLinecap="round"
               strokeDasharray={C} strokeDashoffset={on ? C * (1 - p.pct / 100) : C}
-              style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1) .4s', filter: 'drop-shadow(0 0 6px rgba(126,224,138,.6))' }}
+              className="ring-arc"
             />
           </svg>
           <b>{Math.round(p.pct)}%</b>
         </div>
       </div>
+      {hasPending && (
+        <button type="button" className="btn line" style={{ marginBottom: 12 }} onClick={onPending}>Informar variáveis</button>
+      )}
       <div className="track"><b style={{ width: `${p.pct}%` }} /></div>
       {p.items.length === 0 ? (
         <button type="button" className="btn solid" disabled={generating} onClick={onGenerate}>

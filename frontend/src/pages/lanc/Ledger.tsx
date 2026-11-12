@@ -73,7 +73,7 @@ export default function Ledger({ txs, cats, pms, today, onEdit, onTogglePaid }: 
           <div key={d.date}>
             <div className="day"><span>{d.date === today ? `Hoje · ${label}` : label}</span><span className="num">{signed(d.total)}</span></div>
             {d.items.map((t) => (
-              <div key={t.id} className="tx" tabIndex={0} onClick={() => onEdit(t)} onKeyDown={(e) => e.key === 'Enter' && onEdit(t)}>
+              <div key={t.id} className="tx" role="button" tabIndex={0} onClick={() => onEdit(t)} onKeyDown={(e) => e.target === e.currentTarget && e.key === 'Enter' && onEdit(t)}>
                 <button
                   type="button"
                   className={`mk${t.is_paid ? ' paid' : ''}`}

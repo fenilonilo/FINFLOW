@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent, within } from '@testing-library/rea
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { handlers } from '@/mocks/handlers'
 import { PeriodProvider } from '@/contexts/PeriodContext'
 import Lancamentos from './Lancamentos'
@@ -29,12 +29,17 @@ const TXS = [
   tx({ id: 4, description: 'Salário', amount: '9800.00', type: 'income', is_paid: true }),
 ]
 
-function setup() {
+const Loc = () => <div data-testid="loc">{useLocation().search}</div>
+
+const chip = async (n: RegExp) => (await screen.findAllByRole('button', { name: n })).find((b) => b.classList.contains('chip'))!
+
+function setup(path = '/') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
       <PeriodProvider>
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Loc />
           <Lancamentos />
         </MemoryRouter>
       </PeriodProvider>
@@ -57,7 +62,7 @@ describe('Lancamentos', () => {
     const patch = vi.fn()
     server.use(http.patch(`${B}/transactions/:id/`, async ({ request }) => { patch(await request.json()); return HttpResponse.json({}) }))
     setup()
-    fireEvent.click(await screen.findByRole('button', { name: /Seguro auto/ }))
+    fireEvent.click(await chip(/Seguro auto/))
     await waitFor(() => expect(patch).toHaveBeenCalledWith({ is_paid: true }))
   })
 
@@ -70,7 +75,7 @@ describe('Lancamentos', () => {
     await waitFor(() => expect(post).toHaveBeenCalledWith(expect.objectContaining({ is_paid: true })))
   })
 
-  it('so cartoes de credito entram no leque e limit null nao mostra Limite', async () => {
+  it('so cartoes de credito entram no leque (limite exibido quando existe)', async () => {
     withTxs(TXS)
     setup()
     expect(await screen.findByText(/Fatura atual · Nubank/)).toBeInTheDocument()
@@ -79,7 +84,7 @@ describe('Lancamentos', () => {
     expect(screen.getAllByRole('group', { name: 'Faturas abertas' })[0].querySelectorAll('.fan-card')).toHaveLength(2)
   })
 
-  it('cartao com limit null (so Inter) nao mostra Limite', async () => {
+  it('cartao unico com limit null: sem Limite, divergente e fatura paga', async () => {
     withTxs(TXS)
     server.use(
       http.get(`${B}/cards/summary/`, () =>
@@ -140,5 +145,24 @@ describe('Lancamentos', () => {
     withTxs([tx({ id: 9, description: 'Água', amount: '98.00', is_fixed: true, kind: 'fixed', date: '2020-01-05' })])
     setup()
     expect(await screen.findByText('vencido')).toBeInTheDocument()
+  })
+
+  it('chip pago volta a pendente (PATCH is_paid false)', async () => {
+    withTxs(TXS)
+    const patch = vi.fn()
+    server.use(http.patch(`${B}/transactions/:id/`, async ({ request }) => { patch(await request.json()); return HttpResponse.json({}) }))
+    setup()
+    fireEvent.click(await chip(/Aluguel/))
+    await waitFor(() => expect(patch).toHaveBeenCalledWith({ is_paid: false }))
+  })
+
+  it('?new=1 abre o sheet e fechar remove o parametro', async () => {
+    withTxs(TXS)
+    setup('/?new=1')
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('loc').textContent).toBe('?new=1')
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByTestId('loc').textContent).toBe('')
   })
 })
