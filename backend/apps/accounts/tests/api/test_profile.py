@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
@@ -91,3 +93,8 @@ def test_requires_auth():
     assert c.patch(URL, {"first_name": "x"}).status_code == 401
     assert c.post(AVATAR).status_code == 401
     assert c.delete(AVATAR).status_code == 401
+
+
+def test_client_filename_is_ignored(auth_client):
+    resp = auth_client.post(AVATAR, up(PNG, "../x.html"), format="multipart")
+    assert re.fullmatch(r"/media/avatars/[0-9a-f]{32}\.png", resp.json()["avatar_url"])

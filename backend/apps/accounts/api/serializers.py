@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -33,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email", "first_name", "avatar_url"]
 
-    @extend_schema_field(OpenApiTypes.STR)
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_avatar_url(self, obj) -> str | None:
         return obj.avatar.url if obj.avatar else None
 

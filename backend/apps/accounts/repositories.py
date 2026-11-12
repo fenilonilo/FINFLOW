@@ -25,9 +25,10 @@ class UserRepository:
 
     @staticmethod
     def replace_avatar(user: User, name: str, content: bytes) -> User:
-        if user.avatar:
-            user.avatar.delete(save=False)
+        old = user.avatar.name
         user.avatar.save(name, ContentFile(content), save=True)
+        if old:
+            user.avatar.storage.delete(old)
         return user
 
     @staticmethod
