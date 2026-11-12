@@ -12,16 +12,15 @@ describe('sendToBack', () => {
 })
 
 describe('Fan', () => {
-  it('Enter manda o da frente para trás; teclas durante o voo são ignoradas', () => {
+  it('Enter manda o da frente para trás; ArrowLeft traz o último de volta', () => {
     const onChange = vi.fn()
     render(<Fan items={items} onChange={onChange} />)
     const g = screen.getByRole('group')
     expect(g).toHaveClass('fan')
     fireEvent.keyDown(g, { key: 'Enter' })
     expect(onChange).toHaveBeenLastCalledWith(1)
-    // ArrowLeft durante o voo é ignorado de propósito (guarda C.some(fly))
     fireEvent.keyDown(g, { key: 'ArrowLeft' })
-    expect(onChange).toHaveBeenLastCalledWith(1)
+    expect(onChange).toHaveBeenLastCalledWith(0)
   })
 
   it('com 1 item, teclas não disparam novos onChange', () => {

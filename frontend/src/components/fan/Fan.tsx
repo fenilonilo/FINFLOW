@@ -133,7 +133,8 @@ export default function Fan({ items, onChange, size = 'sm', visible = 4, spread 
       commit(sendToBack(order)); putAll()
     }
     function toFront() {
-      if (n < 2 || C.some(c => c.fly)) return
+      if (n < 2 || C[order[0]].fly) return
+      C[order[n - 1]].fly = null // se ainda estiver em voo, volta direto para a frente
       commit(bringToFront(order)); putAll({ kind: 'settle' })
     }
     api.current = { toBack: () => toBack(), toFront }
