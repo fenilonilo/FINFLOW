@@ -44,7 +44,7 @@ export default function CartoesTab() {
 
   return (
     <>
-      <div className="bar"><button type="button" className="btn solid" onClick={() => setSheet('new')}>+ Novo cartão</button></div>
+      <div className="bar"><button type="button" className="btn line" onClick={() => setSheet('new')}>+ Novo cartão</button></div>
       {active.length === 0 && <p className="muted">Nenhum cartão ativo.</p>}
       {c && (
         <div className="cpane">

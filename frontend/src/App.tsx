@@ -13,7 +13,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="relative z-10 flex h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
     )
@@ -26,6 +26,7 @@ export default function App() {
   useBodyScreen()
   return (
     <>
+    <div className="glow" />
     <BullBackground />
     <Routes>
       <Route path="/login" element={<Login />} />

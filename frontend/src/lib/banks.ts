@@ -32,10 +32,3 @@ export const BANKS: Record<BankKey, BankStyle> = {
 }
 
 export const BANK_KEYS = Object.keys(BANKS) as BankKey[]
-
-/** Detalhe de marca (faixa/linha) por banco; fallback = ink. */
-export const BANK_STRIPE: Partial<Record<BankKey, string>> = {
-  itau: '#003399',
-  caixa: '#F39200',
-  xp: '#FFD400',
-}

@@ -108,7 +108,7 @@ export default function Importar() {
             {imports.length === 0 && <div className="r"><span>Nenhuma importação ainda</span></div>}
             {imports.map((h) => (
               <div className="r" key={h.id}>
-                <span>{h.card_name} · {monthLabelFull(h.month).toLowerCase()}</span>
+                <span>{h.card_name}{h.month != null && ` · ${monthLabelFull(h.month).toLowerCase()}`}</span>
                 <span className="num">{h.created_count} itens · {formatMoney(h.total)}</span>
               </div>
             ))}

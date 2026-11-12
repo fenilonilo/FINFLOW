@@ -214,24 +214,6 @@ export const handlers = [
       ],
     })
   ),
-  http.get(`${BASE}/cards/invoices/`, () =>
-    HttpResponse.json({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [
-        {
-          id: 1,
-          card: 1,
-          year: 2025,
-          month: 1,
-          amount: '1234.56',
-          due_date: '2025-01-10',
-          is_paid: false,
-        },
-      ],
-    })
-  ),
 
   // Recurring expenses CRUD
   http.post(`${BASE}/recurring-expenses/`, async ({ request }) => {
@@ -253,10 +235,6 @@ export const handlers = [
     return HttpResponse.json({ id: Number(params.id), ...(body as object) })
   }),
   http.delete(`${BASE}/cards/:id/`, () => new HttpResponse(null, { status: 204 })),
-  http.patch(`${BASE}/cards/invoices/:id/`, async ({ params, request }) => {
-    const body = await request.json()
-    return HttpResponse.json({ id: Number(params.id), ...(body as object) })
-  }),
 
   // Categories CRUD
   http.post(`${BASE}/categories/`, async ({ request }) => {

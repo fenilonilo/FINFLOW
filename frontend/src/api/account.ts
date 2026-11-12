@@ -25,11 +25,3 @@ export function useUploadAvatar() {
     onSuccess: setUser,
   })
 }
-
-export function useDeleteAvatar() {
-  const { setUser } = useAuth()
-  return useMutation({
-    mutationFn: () => api.delete('/auth/me/avatar/'),
-    onSuccess: () => setUser((u) => u && { ...u, avatar_url: null }),
-  })
-}

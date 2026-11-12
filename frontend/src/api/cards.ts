@@ -1,19 +1,11 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Card, CardInput, CardInvoice, CardSummary, PaginatedResponse } from '@/types/models'
+import type { Card, CardInput, CardSummary, PaginatedResponse } from '@/types/models'
 
 export function useCards() {
   return useQuery({
     queryKey: ['cards'],
     queryFn: () => api.get<PaginatedResponse<Card>>('/cards/').then((r) => r.data),
-  })
-}
-
-export function useCardInvoices(params?: { year?: number; month?: number }) {
-  return useQuery({
-    queryKey: ['card-invoices', params],
-    queryFn: () =>
-      api.get<PaginatedResponse<CardInvoice>>('/cards/invoices/', { params }).then((r) => r.data),
   })
 }
 
@@ -70,18 +62,6 @@ export function usePayInvoice() {
       void qc.invalidateQueries({ queryKey: ['transactions'] })
       void qc.invalidateQueries({ queryKey: ['summary'] })
       void qc.invalidateQueries({ queryKey: ['debts'] })
-    },
-  })
-}
-
-export function useToggleInvoicePaid() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, is_paid }: { id: number; is_paid: boolean }) =>
-      api.patch<CardInvoice>(`/cards/invoices/${id}/`, { is_paid }).then((r) => r.data),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['card-invoices'] })
-      void qc.invalidateQueries({ queryKey: ['summary'] })
     },
   })
 }

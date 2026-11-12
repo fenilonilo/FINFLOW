@@ -39,13 +39,13 @@ export default function FixosCard({ txs, recurring, onToggle, onGenerate, genera
             <span className="num" style={{ color: 'var(--tx)', fontWeight: 600 }}>{formatMoney(p.pending)}</span> a vencer
           </div>
         </div>
-        <div className="ring">
+        <div className="fx-ring">
           <svg width="84" height="84" aria-hidden="true">
             <circle cx="42" cy="42" r="36" stroke="rgba(255,255,255,.06)" strokeWidth="6" fill="none" />
             <circle
               cx="42" cy="42" r="36" stroke="#7ee08a" strokeWidth="6" fill="none" strokeLinecap="round"
               strokeDasharray={C} strokeDashoffset={on ? C * (1 - p.pct / 100) : C}
-              className="ring-arc"
+              className="fx-ring-arc"
             />
           </svg>
           <b>{Math.round(p.pct)}%</b>

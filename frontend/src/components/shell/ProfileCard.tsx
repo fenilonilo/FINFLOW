@@ -55,7 +55,7 @@ export default function ProfileCard() {
           <button className="fb" onClick={() => go('/account/profile')}><User /><span>Perfil<small>nome, e-mail e foto</small></span></button>
           <button className="fb" onClick={() => go('/account/devices')}>
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="10" rx="1.5" /><path d="M7 18h6" /><rect x="17" y="9" width="5" height="11" rx="1" /></svg>
-            <span>Dispositivos<small>{sessions?.length ?? 0} sessões</small></span>
+            <span>Dispositivos<small>{sessions?.length ?? 0} {sessions?.length === 1 ? 'sessão' : 'sessões'}</small></span>
           </button>
           <button className="fb out" onClick={() => void logout()}>
             <svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" /></svg>Sair

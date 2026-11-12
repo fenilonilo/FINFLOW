@@ -234,8 +234,8 @@ export function createBull(canvas: HTMLCanvasElement): Bull | null {
         // primeira chamada, reduced-motion ou só mudou o retângulo: sem dissolve
         placed = true
         clearTimeout(swapTimer)
+        if (morphTarget === 0) morphSpeed = 0.75
         morphTarget = 1
-        morphSpeed = 0.75
         screen = to
         dimTarget = applyPlace()
         return

@@ -26,7 +26,7 @@ const schema = z.object({
   is_paid: z.boolean(),
   installments: z.preprocess(
     (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-    z.number().int().min(1).max(48).optional(),
+    z.number({ invalid_type_error: 'Número inteiro' }).int('Número inteiro').min(1, 'Mínimo 1 parcela').max(48, 'Máximo 48 parcelas').optional(),
   ),
 })
 type FormData = z.output<typeof schema>

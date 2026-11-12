@@ -45,7 +45,7 @@ export default function Visao() {
   const maxCat = cats[0]?.total ?? '0'
   const total = point ? sumMoney([point.fixed, point.variable]) : '0.00'
   const pf = point ? pct(point.fixed, total) : 0
-  const past = points.slice(Math.max(0, idx - 6), idx).filter(p => !p.projected)
+  const past = points.slice(Math.max(0, idx - 6), idx).filter(p => !p.projected && cmpMoney(sumMoney([p.fixed, p.variable]), '0') > 0)
   const avg = past.length ? avgMoney(past.map(p => p.variable)) : null
   const dv = point && avg && cmpMoney(avg, '0') > 0 ? pct(subMoney(point.variable, avg), avg) : null
 

@@ -1,6 +1,4 @@
-// Manual types mirroring section 6 of FINFLOW_PLANO_IMPLEMENTACAO_v2.md
-// DO NOT diverge from the section 6 contracts — these are frozen inter-agent interfaces.
-// Last regenerated: 2026-06-12 — fields updated from OpenAPI schema for cards integration.
+// Tipos de UI do redesign; os contratos da API vêm de types/api.ts (gerado).
 
 export interface User {
   id: number
@@ -119,63 +117,6 @@ export interface MonthSummary {
   }>
 }
 
-export interface FinancialHealth {
-  avg_monthly_income: string
-  avg_monthly_expense: string
-  avg_monthly_invested: string
-  avg_balance: string
-  fixed_commitment_pct: string
-  savings_rate_pct: string
-  score: number
-  score_label: string
-}
-
-export interface Installment {
-  number: number
-  due_date: string
-  amount: string
-  interest_portion: string
-  principal_portion: string
-  remaining_balance: string
-}
-
-export interface SimulationResult {
-  input: Record<string, unknown>
-  financed_amount: string
-  monthly_payment_first: string
-  monthly_payment_last: string
-  total_paid: string
-  total_interest: string
-  effective_cost_pct: string
-  schedule: Installment[]
-  impact: {
-    baseline: FinancialHealth
-    projected: FinancialHealth
-    monthly_income_impact_pct: string
-    balance_reduction_pct: string
-    score_delta: number
-    months_negative_balance: number
-    opportunity_cost: string
-    timeline: Array<{
-      year: number
-      month: number
-      projected_balance: string
-      cumulative_paid: string
-    }>
-    verdict: 'safe' | 'moderate' | 'risky' | 'critical'
-    verdict_message: string
-  }
-}
-
-export interface Investment {
-  id: number
-  year: number
-  month: number
-  date: string
-  location: string
-  amount: string
-}
-
 export type BankKey =
   | 'nubank' | 'inter' | 'itau' | 'bradesco' | 'santander' | 'bb' | 'caixa' | 'c6'
   | 'xp' | 'btg' | 'picpay' | 'mercadopago' | 'neon' | 'pan' | 'other'
@@ -193,16 +134,6 @@ export interface Card {
 }
 
 export type CardInput = Partial<Card> & { functions?: Array<'credit' | 'debit'> }
-
-export interface CardInvoice {
-  id: number
-  card: number
-  year: number
-  month: number
-  amount: string
-  due_date: string
-  is_paid: boolean
-}
 
 export interface InvoiceSummary {
   amount: string
@@ -228,25 +159,6 @@ export interface CardSummary {
   committed_pct: string | null
   open_cycle_spend: string
   invoice: InvoiceSummary
-}
-
-export interface Debt {
-  id: number
-  debt_type: string
-  creditor: string
-  payment_method: number | null
-  installment_current: number
-  installment_total: number
-  installment_amount: string
-  total_amount: string
-  start_date: string
-  is_settled: boolean
-  origin: 'manual' | 'card_purchase'
-  card_detail: {
-    id: number
-    name: string
-    color: string
-  } | null
 }
 
 export interface PaginatedResponse<T> {
@@ -279,8 +191,8 @@ export interface StatementImportLog {
   card_name: string
   card_bank: BankKey
   kind: 'credit' | 'debit'
-  year: number
-  month: number
+  year: number | null
+  month: number | null
   filename: string
   created_count: number
   skipped_count: number

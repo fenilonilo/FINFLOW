@@ -2,25 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { Transaction, PaginatedResponse } from '@/types/models'
 
-export interface TransactionFilters {
-  year?: number
-  month?: number
-  type?: string
-  kind?: string
-  category?: number
-  page?: number
-}
-
-export function useTransactions(filters: TransactionFilters = {}) {
-  return useQuery({
-    queryKey: ['transactions', filters],
-    queryFn: () =>
-      api
-        .get<PaginatedResponse<Transaction>>('/transactions/', { params: filters })
-        .then((r) => r.data),
-  })
-}
-
 export function useCreateTransaction() {
   const qc = useQueryClient()
   return useMutation({

@@ -53,3 +53,7 @@
 | Redesign | Fixos vencidos e não pagos continuam em Próximos vencimentos com etiqueta "vencido" | Não esconder pendência atrasada |
 | Redesign | Movimentações mantém busca, filtros extras e pago por linha | Nenhuma função em uso se perde |
 | Redesign | Celular fora de escopo: abaixo de 1100px as grades viram uma coluna, sem navegação mobile nem ajuste do touro | Foco desktop nesta versão |
+| Redesign | "Lembrar este dispositivo" no login é só de UI (não altera a persistência da sessão) | Aceito no protótipo; sem efeito no backend |
+| Redesign | Aba Fixos lista também modelos de receita, marcados "receita" e fora do "Total previsto" | Visibilidade sem distorcer o previsto de despesas |
+| Redesign | Pagamentos (detalhe não-cartão) mostra "à vista" e cabeçalho "Inativos" para formas desativadas | Texto de apoio fora do protótipo |
+| Redesign | Visão usa a redação do protótipo na frase de destaque e não tem H1 | Fidelidade ao protótipo |
