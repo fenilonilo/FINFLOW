@@ -6,6 +6,7 @@ import BullBackground from '@/components/bull/BullBackground'
 import Login from '@/pages/Login'
 import Lancamentos from '@/pages/lanc/Lancamentos'
 import Importar from '@/pages/Importar'
+import Visao from '@/pages/visao/Visao'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -49,7 +50,7 @@ export default function App() {
       >
         <Route path="/" element={<Lancamentos />} />
         <Route path="/import" element={<Importar />} />
-        <Route path="/overview" element={<Placeholder eyebrow="Visão" title="Visão" />} />
+        <Route path="/overview" element={<Visao />} />
         <Route path="/settings" element={<Navigate to="/settings/categories" replace />} />
         <Route path="/settings/:tab" element={<SettingsTab />} />
         <Route path="/account" element={<Navigate to="/account/profile" replace />} />

@@ -58,6 +58,42 @@ body::after {
 .fan-shade { position: absolute; inset: 0; border-radius: 18px; background: #000; pointer-events: none; z-index: 3; transition: opacity .35s ease-out; }
 .fan:focus-visible .fan-card[data-top] .fan-face { outline: 2px solid var(--g); outline-offset: 4px; }
 .btn kbd { font: 600 10px var(--f-num); opacity: .6; border: 1px solid currentColor; border-radius: 5px; padding: 0 4px; }
+
+/* ---------- visao ---------- */
+.vis-page .sentence { font-family: var(--f-display); font-weight: 400; font-variant-numeric: lining-nums; font-size: clamp(28px, 1.7vw + 1.4vh, 50px); line-height: 1.12; letter-spacing: -.005em; margin: 14px 0 clamp(14px, 2.4vh, 24px); min-height: 2.3em; max-width: 1000px; animation: rise .45s var(--ease) both; }
+.vis-page .sentence em { font-style: normal; color: var(--g); }
+.vis-page .sentence .soft { color: var(--mu); }
+.vis-page .legend { display: flex; gap: 18px; font-size: 12px; font-weight: 500; color: var(--mu); margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+.vis-page .legend span { display: inline-flex; align-items: center; gap: 7px; }
+.vis-page .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.vis-page .chart { position: relative; }
+.vis-page .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.vis-page .chart .col { cursor: pointer; }
+.vis-page .chart .col .seg { transition: opacity .3s var(--ease); }
+.vis-page .chart .col:not(.on) .seg { opacity: .45; }
+.vis-page .chart .col:hover .seg { opacity: .85; }
+.vis-page .chart .lbl { font: 500 13px var(--f-body); fill: var(--mu2); text-anchor: middle; }
+.vis-page .chart .col.on .lbl { fill: var(--tx); font-weight: 700; }
+.vis-page .chart .gl { stroke: rgba(255,255,255,.05); }
+.vis-page .chart .gt { font: 500 12px var(--f-num); fill: var(--mu2); }
+.vis-page .tip { position: absolute; pointer-events: none; padding: 10px 12px; border-radius: 12px; background: rgba(6,12,8,.94); border: 1px solid var(--line); font-size: 12px; transform: translate(-50%, -112%); white-space: nowrap; z-index: 3; }
+.vis-page .tip b { display: block; margin-bottom: 4px; }
+.vis-page .tip .r { display: flex; justify-content: space-between; gap: 16px; color: var(--mu); }
+.vis-page .tip .r span:last-child { font-family: var(--f-num); color: var(--tx); }
+.vis-page .ins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; align-items: stretch; }
+@media (max-width: 1099px) { .vis-page .ins { grid-template-columns: minmax(0, 1fr); } }
+.vis-page .ins h4 { font-weight: 600; font-size: 13px; color: var(--mu); margin-bottom: 12px; }
+.vis-page .hb { display: grid; grid-template-columns: 96px 1fr 76px; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 9px; }
+.vis-page .hb .bar { height: 8px; border-radius: 0 4px 4px 0; background: var(--g2); transition: width .6s var(--ease); }
+.vis-page .hb .num { text-align: right; font-size: 12.5px; }
+.vis-page .split { display: flex; height: 10px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 6px 0 12px; }
+.vis-page .split b { display: block; height: 100%; transition: flex-grow .6s var(--ease); }
+.vis-page .kv { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
+.vis-page .kv span:first-child { color: var(--mu); display: flex; align-items: center; gap: 7px; }
+.vis-page .kv i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.vis-page .hl { font-family: var(--f-display); font-variant-numeric: lining-nums; font-size: clamp(18px, .9vw + .5vh, 24px); line-height: 1.2; }
+.vis-page .hl em { font-style: normal; color: var(--g); }
+@media (prefers-reduced-motion: reduce) { .vis-page .sentence { animation: none; } .vis-page .chart .col .seg, .vis-page .hb .bar, .vis-page .split b { transition: none; } }
 }
 
 @keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
