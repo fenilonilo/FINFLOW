@@ -79,11 +79,11 @@ export default function Lancamentos() {
           {ready ? (
             <FixosCard txs={all} recurring={rec} onToggle={togglePaid} onGenerate={generate} generating={genFixed.isPending} hasPending={pending.length > 0} onPending={() => setPendingOpen(true)} />
           ) : failed ? <p className="glass muted">Não foi possível carregar os fixos.</p> : <Skeleton className="h-56" />}
-          {summary.data ? <ResumoCard s={summary.data} /> : <Skeleton className="h-48" />}
+          {summary.data ? <ResumoCard s={summary.data} /> : summary.isError ? <p className="glass muted">Não foi possível carregar o resumo.</p> : <Skeleton className="h-48" />}
         </div>
         <div className="col">
-          {cards.data ? <FaturasCard cards={cards.data} year={year} month={month} /> : <Skeleton className="h-56" />}
-          {txs.data && recurring.data ? <VencimentosCard txs={all} recurring={rec} today={today} /> : <Skeleton className="h-56" />}
+          {cards.data ? <FaturasCard cards={cards.data} year={year} month={month} /> : cards.isError ? <p className="glass muted">Não foi possível carregar as faturas.</p> : <Skeleton className="h-56" />}
+          {txs.data && recurring.data ? <VencimentosCard txs={all} recurring={rec} today={today} /> : failed ? <p className="glass muted">Não foi possível carregar os vencimentos.</p> : <Skeleton className="h-56" />}
         </div>
         {txs.data ? (
           <Ledger txs={all} cats={cats.data?.results ?? []} pms={pms.data?.results ?? []} today={today} onEdit={setEditing} onTogglePaid={togglePaid} />

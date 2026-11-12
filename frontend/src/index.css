@@ -131,7 +131,6 @@ body::after {
 .lanc .ring svg { transform: rotate(-90deg); }
 .lanc .ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 600 15px var(--f-num); }
 .lanc .ring-arc { transition: stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1) .4s; filter: drop-shadow(0 0 6px rgba(126,224,138,.6)); }
-@media (prefers-reduced-motion: reduce) { .lanc .track b, .lanc .rb b { animation: none; } .lanc .ring-arc, .lanc .dots i { transition: none; } }
 .lanc .track { height: 6px; border-radius: 99px; background: rgba(255,255,255,.06); margin: 16px 0 14px; overflow: hidden; }
 .lanc .track b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #3f8f4c, var(--g)); box-shadow: 0 0 18px rgba(126,224,138,.5); transform-origin: left; animation: grow 1.1s var(--ease) .5s both; }
 @keyframes grow { from { transform: scaleX(0); } }
@@ -155,6 +154,7 @@ body::after {
 .lanc .dots { display: flex; gap: 6px; margin-top: 14px; }
 .lanc .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.15); transition: all .3s var(--ease); }
 .lanc .dots i.on { width: 18px; border-radius: 3px; background: var(--g); }
+@media (prefers-reduced-motion: reduce) { .lanc .track b, .lanc .rb b { animation: none; } .lanc .ring-arc, .lanc .dots i { transition: none; } }
 .lanc .warn { color: #f0b45a; font-size: 12px; margin-top: 8px; }
 .lanc .due-list { flex: 1; max-height: 300px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(126,224,138,.2) transparent; }
 .lanc .due-foot { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--mu); padding-top: 12px; margin-top: 4px; border-top: 1px solid rgba(255,255,255,.06); }
