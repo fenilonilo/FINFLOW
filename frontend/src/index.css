@@ -310,10 +310,12 @@ body::after {
 .conta .tabs { width: auto; }
 .conta .tabs button { flex: 1; }
 .conta .mu { color: var(--mu); font-size: 14px; }
-.conta .me-top { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.conta .me-top { display: flex; align-items: center; gap: 18px; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.conta .me-top svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.conta .rw .ic { font-size: 15px; }
 .conta .me-top b { display: block; font-weight: 600; }
-.conta .me-top small { display: block; color: var(--mu); font-size: 12px; margin: 2px 0 8px; }
-.conta .me-top .btn { padding: 7px 14px; font-size: 13px; }
+.conta .me-top small { display: block; color: var(--mu); font-size: 12px; margin: 2px 0 10px; }
+.conta .me-top .btn { padding: 7px 14px; font-size: 12.5px; }
 .conta .cph { position: relative; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; color: #d9f5dd; background: linear-gradient(135deg,#3f9a50,#1d4a26); box-shadow: 0 0 0 3px rgba(126,224,138,.12); flex: none; }
 .conta .cph > svg { width: 34px; height: 34px; }
 .conta .cph > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }

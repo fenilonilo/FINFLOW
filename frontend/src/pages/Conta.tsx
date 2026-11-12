@@ -53,11 +53,15 @@ function Perfil() {
 
   function onFile(f?: File) {
     if (!f) return
+    if (!['image/jpeg', 'image/png'].includes(f.type)) return setPhotoErr('A foto deve ser JPG ou PNG')
     if (f.size > MAX_AVATAR) return setPhotoErr('A foto deve ter até 2 MB')
     setPhotoErr('')
     upload.mutate(f, {
       onSuccess: () => toast('Foto atualizada', 'success'),
-      onError: () => setPhotoErr('Não foi possível enviar a foto'),
+      onError: (err) => {
+        const d = (err as { response?: { data?: { detail?: string; errors?: { avatar?: string[] } } } })?.response?.data
+        setPhotoErr(d?.errors?.avatar?.[0] ?? d?.detail ?? 'Não foi possível enviar a foto')
+      },
     })
   }
 
@@ -86,10 +90,11 @@ function Perfil() {
 }
 
 function Dispositivos() {
-  const { data, isLoading } = useSessions()
+  const { data, isLoading, isError } = useSessions()
   const revoke = useRevokeSession()
   const list = (data ?? []).filter((s) => !s.revoked)
   if (isLoading) return null
+  if (isError) return <p className="mu">Não foi possível carregar as sessões</p>
   if (!list.length) return <p className="mu">Nenhuma sessão registrada</p>
   const end = (id: number) =>
     revoke.mutate(id, { onSuccess: () => toast('Sessão encerrada', 'success'), onError: () => toast('Não foi possível encerrar', 'error') })
@@ -106,7 +111,7 @@ function Dispositivos() {
             </div>
             {s.is_current
               ? <span className="end pill">Ativo</span>
-              : <button type="button" className="end pill line" onClick={() => end(s.id)}>Encerrar</button>}
+              : <button type="button" className="end pill line" disabled={revoke.isPending && revoke.variables === s.id} onClick={() => end(s.id)}>Encerrar</button>}
           </div>
         )
       })}

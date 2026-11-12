@@ -17,11 +17,11 @@ afterAll(() => server.close())
 
 const user = { id: 1, email: 'felipe@finflow.app', first_name: 'Felipe', avatar_url: null }
 
-function setup(path: string) {
+function setup(path: string, setUser = vi.fn()) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <AuthContext.Provider value={{ user, isLoading: false, login: vi.fn(), setUser: vi.fn(), logout: vi.fn() }}>
+      <AuthContext.Provider value={{ user, isLoading: false, login: vi.fn(), setUser, logout: vi.fn() }}>
         <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes><Route path="/account/:tab" element={<Conta />} /></Routes>
         </MemoryRouter>
@@ -48,10 +48,12 @@ describe('Conta', () => {
 
   it('Encerrar faz DELETE da sessão', async () => {
     const del = vi.fn()
-    server.use(http.delete(`${B}/auth/sessions/:id/`, ({ params }) => { del(params.id); return new HttpResponse(null, { status: 204 }) }))
+    const sess = (id: number, cur: boolean) => ({ id, device_name: `Dev ${id}`, last_seen_at: new Date().toISOString(), created_at: '2026-11-01T10:00:00Z', revoked: false, is_current: cur })
+    server.use(http.get(`${B}/auth/sessions/`, () => HttpResponse.json([sess(7, true), sess(9, false)])),
+      http.delete(`${B}/auth/sessions/:id/`, ({ params }) => { del(params.id); return new HttpResponse(null, { status: 204 }) }))
     setup('/account/devices')
     fireEvent.click(await screen.findByRole('button', { name: 'Encerrar' }))
-    await waitFor(() => expect(del).toHaveBeenCalledWith('2'))
+    await waitFor(() => expect(del).toHaveBeenCalledWith('9'))
   })
 
   it('lista vazia', async () => {
@@ -85,5 +87,14 @@ describe('Conta', () => {
     await userEvent.upload(container.querySelector('input[type=file]')!, big)
     expect(await screen.findByText('A foto deve ter até 2 MB')).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
+  })
+
+  it('foto válida (<= 2 MB) é enviada como multipart', async () => {
+    const post = vi.fn()
+    server.use(http.post(`${B}/auth/me/avatar/`, async ({ request }) => { post(request.headers.get('content-type')); return HttpResponse.json({ ...user, avatar_url: '/media/a.png' }) }))
+    const { container } = setup('/account/profile')
+    await userEvent.upload(container.querySelector('input[type=file]')!, new File([new Uint8Array(10)], 'a.png', { type: 'image/png' }))
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1))
+    expect(post.mock.calls[0][0]).toContain('multipart/form-data')
   })
 })
