@@ -9,7 +9,7 @@ from apps.cards.dtos import CardWriteDTO
 from apps.cards.models import Card
 from apps.cards.services import CardService
 from apps.core.models import Category, PaymentMethod
-from apps.transactions.models import RecurringExpense
+from apps.transactions.models import RecurringExpense, Transaction
 
 EMAIL = "fenilo.projetos@gmail.com"
 START = datetime.date(2026, 11, 1)
@@ -22,21 +22,19 @@ CATEGORIES = [
     "Beleza", "Roupa", "Mercado", "Aluguel", "Assinaturas", "Outros",
     "Filhos", "Pet", "Presentes", "Viagem",
 ]  # fmt: skip
-# (tipo, categoria, descrição, forma, dia, valor, cartão)
+# (tipo, categoria, descrição, forma, dia, valor). Fatura de cartão não é fixo.
 FIXOS = [
-    ("income", "Salário", "Trampo", "Pix", 10, "8000.00", None),
-    ("expense", "IMPOSTO", "Darf", "Débito", 15, "278.85", None),
-    ("expense", "IMPOSTO", "Das", "Débito", 15, "480.00", None),
-    ("expense", "Saúde", "Unimed", "Boleto", 12, "384.76", None),
-    ("expense", "Saúde", "QLaira", "Pix", 13, "60.00", None),
-    ("expense", "Contas", "Inter", "Débito", 14, "996.14", "Inter"),
-    ("expense", "Uber/transporte", "Nubank", "Débito", 15, "935.34", "Nubank"),
-    ("expense", "Essencial", "Internet", "Pix", 16, "158.39", None),
-    ("expense", "Lazer", "Spotify", "Débito", 17, "13.00", None),
-    ("expense", "Casa", "Apartamento", "Boleto", 10, "2199.20", None),
-    ("expense", "Contabilizei", "Contabilidade", "Débito", 15, "255.00", None),
-    ("expense", "Educação", "Faculdade", "Pix", 6, "569.62", None),
-    ("expense", "Casa", "Leo", "Pix", 10, "1500.00", None),
+    ("income", "Salário", "Trampo", "Pix", 10, "8000.00"),
+    ("expense", "IMPOSTO", "Darf", "Débito", 15, "278.85"),
+    ("expense", "IMPOSTO", "Das", "Débito", 15, "480.00"),
+    ("expense", "Saúde", "Unimed", "Boleto", 12, "384.76"),
+    ("expense", "Saúde", "QLaira", "Pix", 13, "60.00"),
+    ("expense", "Essencial", "Internet", "Pix", 16, "158.39"),
+    ("expense", "Lazer", "Spotify", "Débito", 17, "13.00"),
+    ("expense", "Casa", "Apartamento", "Boleto", 10, "2199.20"),
+    ("expense", "Contabilizei", "Contabilidade", "Débito", 15, "255.00"),
+    ("expense", "Educação", "Faculdade", "Pix", 6, "569.62"),
+    ("expense", "Casa", "Leo", "Pix", 10, "1500.00"),
 ]
 
 
@@ -53,11 +51,9 @@ class Command(BaseCommand):
         for name in PAYMENT_METHODS:
             pms[name], _ = PaymentMethod.objects.get_or_create(user=user, name=name)
 
-        cards = {}
         for name, color, closing, due in CARDS:
-            card = Card.objects.filter(user=user, name=name).first()
-            if card is None:
-                card = CardService().create_card(
+            if not Card.objects.filter(user=user, name=name).exists():
+                CardService().create_card(
                     user.id,
                     CardWriteDTO(
                         name=name,
@@ -67,7 +63,6 @@ class Command(BaseCommand):
                         functions=["credit", "debit"],
                     ),
                 )
-            cards[name] = card
 
         cats = {}
         for name in CATEGORIES:
@@ -75,7 +70,12 @@ class Command(BaseCommand):
             cat = Category.objects.filter(user=user, name__iexact=name).first()
             cats[name] = cat or Category.objects.create(user=user, name=name)
 
-        for typ, cat, desc, pm, day, amount, card in FIXOS:
+        # Fixos ligados a cartão (fatura) foram descontinuados.
+        card_fixed = RecurringExpense.objects.filter(user=user, card__isnull=False)
+        Transaction.objects.filter(recurring_source__in=card_fixed).delete()
+        card_fixed.delete()
+
+        for typ, cat, desc, pm, day, amount in FIXOS:
             RecurringExpense.objects.update_or_create(
                 user=user,
                 description=desc,
@@ -85,7 +85,6 @@ class Command(BaseCommand):
                     "payment_method": pms[pm],
                     "due_day": day,
                     "default_amount": Decimal(amount),
-                    "card": cards[card] if card else None,
                     "start_date": START,
                     "is_variable": False,
                 },

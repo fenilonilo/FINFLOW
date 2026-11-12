@@ -11,6 +11,8 @@ class CardWriteDTO:
     due_day: int
     limit: Decimal | None = None
     functions: list[str] = field(default_factory=list)
+    bank: str = "other"
+    is_active: bool = True
 
 
 @dataclass
@@ -37,3 +39,5 @@ class CardSummaryDTO:
     committed_pct: Decimal | None
     open_cycle_spend: Decimal
     invoice: InvoiceDTO
+    bank: str = "other"
+    is_active: bool = True

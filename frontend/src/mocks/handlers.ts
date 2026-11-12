@@ -245,7 +245,7 @@ export const handlers = [
       next: null,
       previous: null,
       results: [
-        { id: 1, name: 'Nubank', color: '#818cf8', closing_day: 3, due_day: 10 },
+        { id: 1, name: 'Nubank', color: '#820AD1', bank: 'nubank', is_active: true, closing_day: 3, due_day: 10 },
       ],
     })
   ),

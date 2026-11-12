@@ -151,6 +151,8 @@ class CardFactory(DjangoModelFactory):
     closing_day = 12
     due_day = 19
     limit = None
+    bank = "other"
+    is_active = True
 
 
 class CardInvoiceFactory(DjangoModelFactory):

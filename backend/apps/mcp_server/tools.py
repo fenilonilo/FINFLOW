@@ -7,7 +7,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from apps.accounts.repositories import UserRepository
-from apps.cards.repositories import CardRepository
 from apps.cards.services import CardInvoiceService
 from apps.common.dtos import CreateTransactionDTO
 from apps.common.exceptions import DomainError, ValidationDomainError
@@ -216,7 +215,6 @@ def list_fixed() -> list[dict[str, Any]]:
     uid = owner_id()
     RecurringExpenseService().ensure_month(uid, *_today_ym())
     cats, pms = _name_maps(uid)
-    cards = {c.id: c.name for c in CardRepository.list_by_user(uid)}
     return [
         {
             "id": r.id,
@@ -226,7 +224,6 @@ def list_fixed() -> list[dict[str, Any]]:
             "due_day": r.due_day,
             "category": cats.get(r.category_id),
             "payment_method": pms.get(r.payment_method_id),
-            "card": cards.get(r.card_id),
             "start_date": r.start_date.isoformat() if r.start_date else None,
         }
         for r in RecurringExpenseRepository.list_active(uid)
@@ -240,12 +237,11 @@ def add_fixed(
     due_day: int,
     category: str | None = None,
     payment_method: str | None = None,
-    card: str | None = None,
 ) -> dict[str, Any]:
     """Cria um fixo mensal (type 'income' ou 'expense'; due_day 1-28; amount
     string decimal). Começa no mês atual e já gera o lançamento do mês.
-    category/payment_method/card são NOMES. Fixo ligado a card representa a
-    fatura (valor = soma dos itens de crédito)."""
+    category/payment_method são NOMES. Fatura de cartão não é fixo: gastos de
+    cartão vêm dos itens importados da fatura."""
     uid = owner_id()
     if not 1 <= due_day <= 28:
         raise ToolError("due_day deve estar entre 1 e 28.")
@@ -253,7 +249,6 @@ def add_fixed(
     if amt <= 0:
         raise ToolError("amount deve ser maior que zero.")
     cat, pm = _lookups(uid, category, payment_method)
-    crd = _by_name(CardRepository.list_by_user(uid), card, "Cartão")
     start = datetime.date.today().replace(day=1)
     rec = RecurringExpenseRepository.create(
         {
@@ -264,7 +259,6 @@ def add_fixed(
             "due_day": due_day,
             "category_id": cat.id if cat else None,
             "payment_method_id": pm.id if pm else None,
-            "card_id": crd.id if crd else None,
             "start_date": start,
         }
     )

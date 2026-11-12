@@ -175,10 +175,16 @@ export interface Investment {
   amount: string
 }
 
+export type BankKey =
+  | 'nubank' | 'inter' | 'itau' | 'bradesco' | 'santander' | 'bb' | 'caixa' | 'c6'
+  | 'xp' | 'btg' | 'picpay' | 'mercadopago' | 'neon' | 'pan' | 'other'
+
 export interface Card {
   id: number
   name: string
   color: string
+  bank: BankKey
+  is_active: boolean
   closing_day: number
   due_day: number
   limit: string | null
@@ -210,6 +216,8 @@ export interface CardSummary {
   card_id: number
   name: string
   color: string
+  bank: BankKey
+  is_active: boolean
   closing_day: number
   due_day: number
   functions: Array<'credit' | 'debit'>
@@ -251,7 +259,7 @@ export interface ImportItem {
   description: string
   amount: string
   category: string | null
-  status: 'created' | 'duplicate' | 'ignored'
+  status: 'created' | 'duplicate' | 'ignored' | 'refunded'
 }
 
 export interface ImportResult {

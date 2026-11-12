@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,6 +19,7 @@ import type {
   PaginatedResponse,
   PendingVariable,
   GenerateFixedResult,
+  CardSummary,
 } from '@/types/models'
 import { Plus, Pencil, Archive, RefreshCw } from 'lucide-react'
 
@@ -134,6 +136,8 @@ function VariableAmountsModal({
 export default function RecurringExpenses() {
   const { year, month } = usePeriod()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [invoiceCards, setInvoiceCards] = useState<CardSummary[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [archiveId, setArchiveId] = useState<number | null>(null)
@@ -174,6 +178,22 @@ export default function RecurringExpenses() {
       } else {
         toast(`${result.created} lançamento(s) criado(s)`, 'success')
       }
+      // cartões de crédito sem itens de fatura importados na competência
+      queryClient
+        .fetchQuery({
+          queryKey: ['cards-summary', year, month],
+          staleTime: 0,
+          queryFn: () =>
+            api
+              .get<CardSummary[]>('/cards/summary/', { params: { year, month } })
+              .then((r) => r.data),
+        })
+        .then((cards) =>
+          setInvoiceCards(
+            cards.filter((c) => c.functions.includes('credit') && Number(c.invoice.amount) === 0),
+          ),
+        )
+        .catch(() => undefined)
     },
     onError: () => toast('Erro ao gerar fixos', 'error'),
   })
@@ -587,6 +607,45 @@ export default function RecurringExpenses() {
           }}
           isPending={generateVariables.isPending}
         />
+      )}
+
+      {/* Invoice upload modal (só após fechar o modal de variáveis) */}
+      {!variableModalOpen && invoiceCards.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 shadow-2xl">
+            <h2 className="mb-2 text-base font-semibold text-text-primary">
+              Envie as faturas de {String(month).padStart(2, '0')}/{year}
+            </h2>
+            <p className="mb-5 text-xs text-text-muted">
+              Estes cartões ainda não têm itens de fatura importados neste mês.
+            </p>
+            <ul className="space-y-2">
+              {invoiceCards.map((c) => (
+                <li key={c.card_id} className="flex items-center gap-3">
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: c.color }}
+                  />
+                  <span className="flex-1 text-sm text-text-primary">{c.name}</span>
+                  <button
+                    onClick={() => navigate(`/import?card=${c.card_id}`)}
+                    className="rounded-xl bg-accent/20 px-4 py-1.5 text-sm font-medium text-accent hover:bg-accent/30 transition-colors"
+                  >
+                    Importar fatura
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-end pt-5">
+              <button
+                onClick={() => setInvoiceCards([])}
+                className="rounded-xl px-4 py-2 text-sm text-text-muted hover:bg-elevated transition-colors"
+              >
+                Depois
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

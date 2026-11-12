@@ -106,7 +106,6 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             "id",
             "description",
             "type",
-            "card",
             "start_date",
             "is_variable",
             "category",

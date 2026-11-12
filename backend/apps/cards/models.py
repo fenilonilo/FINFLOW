@@ -3,6 +3,24 @@ from django.db import models
 from apps.accounts.models import User
 
 
+class Bank(models.TextChoices):
+    NUBANK = "nubank", "Nubank"
+    INTER = "inter", "Inter"
+    ITAU = "itau", "Itaú"
+    BRADESCO = "bradesco", "Bradesco"
+    SANTANDER = "santander", "Santander"
+    BB = "bb", "Banco do Brasil"
+    CAIXA = "caixa", "Caixa"
+    C6 = "c6", "C6 Bank"
+    XP = "xp", "XP"
+    BTG = "btg", "BTG Pactual"
+    PICPAY = "picpay", "PicPay"
+    MERCADOPAGO = "mercadopago", "Mercado Pago"
+    NEON = "neon", "Neon"
+    PAN = "pan", "Banco Pan"
+    OTHER = "other", "Outro"
+
+
 class Card(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cards")
     name = models.CharField(max_length=50)
@@ -10,6 +28,8 @@ class Card(models.Model):
     closing_day = models.PositiveSmallIntegerField()
     due_day = models.PositiveSmallIntegerField()
     limit = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    bank = models.CharField(max_length=20, choices=Bank.choices, default=Bank.OTHER)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

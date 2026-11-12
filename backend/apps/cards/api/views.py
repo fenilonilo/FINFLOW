@@ -19,9 +19,12 @@ class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
 
     def get_queryset(self):
-        return Card.objects.filter(user=self.request.user).prefetch_related(
+        qs = Card.objects.filter(user=self.request.user).prefetch_related(
             "payment_methods"
         )
+        if self.request.query_params.get("active") == "true":
+            qs = qs.filter(is_active=True)
+        return qs
 
     def _dto(self, data):
         return CardWriteDTO(
@@ -31,6 +34,8 @@ class CardViewSet(viewsets.ModelViewSet):
             due_day=data["due_day"],
             limit=data.get("limit"),
             functions=data.get("functions") or [],
+            bank=data.get("bank", "other"),
+            is_active=data.get("is_active", True),
         )
 
     def perform_create(self, serializer):

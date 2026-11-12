@@ -774,6 +774,25 @@ export interface components {
          * @enum {string}
          */
         AmortizationSystemEnum: "price" | "sac" | "none";
+        /**
+         * @description * `nubank` - Nubank
+         *     * `inter` - Inter
+         *     * `itau` - Itaú
+         *     * `bradesco` - Bradesco
+         *     * `santander` - Santander
+         *     * `bb` - Banco do Brasil
+         *     * `caixa` - Caixa
+         *     * `c6` - C6 Bank
+         *     * `xp` - XP
+         *     * `btg` - BTG Pactual
+         *     * `picpay` - PicPay
+         *     * `mercadopago` - Mercado Pago
+         *     * `neon` - Neon
+         *     * `pan` - Banco Pan
+         *     * `other` - Outro
+         * @enum {string}
+         */
+        BankEnum: "nubank" | "inter" | "itau" | "bradesco" | "santander" | "bb" | "caixa" | "c6" | "xp" | "btg" | "picpay" | "mercadopago" | "neon" | "pan" | "other";
         Card: {
             readonly id: number;
             name: string;
@@ -782,6 +801,8 @@ export interface components {
             due_day: number;
             /** Format: decimal */
             limit?: string | null;
+            bank?: components["schemas"]["BankEnum"];
+            is_active?: boolean;
             functions: components["schemas"]["FunctionsEnum"][];
             readonly active_functions: string;
         };
@@ -1042,6 +1063,8 @@ export interface components {
             due_day?: number;
             /** Format: decimal */
             limit?: string | null;
+            bank?: components["schemas"]["BankEnum"];
+            is_active?: boolean;
             functions?: components["schemas"]["FunctionsEnum"][];
             readonly active_functions?: string;
         };
@@ -1117,7 +1140,6 @@ export interface components {
             readonly id?: number;
             description?: string;
             type?: components["schemas"]["TypeEnum"];
-            card?: number | null;
             /** Format: date */
             start_date?: string | null;
             is_variable?: boolean;
@@ -1171,7 +1193,6 @@ export interface components {
             readonly id: number;
             description: string;
             type?: components["schemas"]["TypeEnum"];
-            card?: number | null;
             /** Format: date */
             start_date?: string | null;
             is_variable?: boolean;

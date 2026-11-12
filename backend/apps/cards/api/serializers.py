@@ -21,6 +21,8 @@ class CardSerializer(serializers.ModelSerializer):
             "closing_day",
             "due_day",
             "limit",
+            "bank",
+            "is_active",
             "functions",
             "active_functions",
         ]
@@ -67,6 +69,8 @@ def serialize_card_summary(dto):
         "closing_day": dto.closing_day,
         "due_day": dto.due_day,
         "functions": dto.functions,
+        "bank": dto.bank,
+        "is_active": dto.is_active,
         "limit": str(dto.limit) if dto.limit is not None else None,
         "committed": str(dto.committed),
         "committed_pct": (

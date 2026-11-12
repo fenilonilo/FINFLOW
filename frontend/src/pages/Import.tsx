@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { usePeriod } from '@/contexts/PeriodContext'
 import { api } from '@/api/client'
@@ -8,11 +9,12 @@ import { toast } from '@/components/ui/Toast'
 import type { Card, ImportResult, PaginatedResponse } from '@/types/models'
 import { Upload } from 'lucide-react'
 
-const STATUS_LABEL = { created: 'Criado', duplicate: 'Duplicado', ignored: 'Ignorado' } as const
+const STATUS_LABEL = { created: 'Criado', duplicate: 'Duplicado', ignored: 'Ignorado', refunded: 'Estornado' } as const
 const STATUS_COLOR = {
   created: 'text-accent',
   duplicate: 'text-warning',
   ignored: 'text-text-muted',
+  refunded: 'text-text-muted',
 } as const
 
 const field =
@@ -21,14 +23,15 @@ const field =
 export default function Import() {
   const { year, month } = usePeriod()
   const queryClient = useQueryClient()
-  const [cardId, setCardId] = useState('')
+  const [searchParams] = useSearchParams()
+  const [cardId, setCardId] = useState(searchParams.get('card') ?? '')
   const [kind, setKind] = useState<'credit' | 'debit'>('credit')
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
 
   const { data: cards } = useQuery<PaginatedResponse<Card>>({
-    queryKey: ['cards'],
-    queryFn: () => api.get<PaginatedResponse<Card>>('/cards/').then((r) => r.data),
+    queryKey: ['cards', 'active'],
+    queryFn: () => api.get<PaginatedResponse<Card>>('/cards/', { params: { active: true } }).then((r) => r.data),
   })
 
   const importMutation = useMutation({
@@ -60,7 +63,7 @@ export default function Import() {
       <h1 className="text-lg font-semibold text-text-primary">Importar</h1>
 
       <div className="space-y-4 rounded-2xl border border-border-subtle bg-surface p-5">
-        <p className="text-xs text-text-muted">Formatos: CSV Inter, CSV Nubank, OFX</p>
+        <p className="text-xs text-text-muted">Formatos: PDF fatura Inter, CSV Inter, CSV Nubank, OFX</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-xs font-medium text-text-muted">Cartão</label>
@@ -87,7 +90,7 @@ export default function Import() {
         </div>
         <input
           type="file"
-          accept=".csv,.ofx"
+          accept=".csv,.ofx,.pdf"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="block w-full text-sm text-text-muted file:mr-3 file:rounded-xl file:border-0 file:bg-accent/20 file:px-4 file:py-2 file:text-sm file:font-medium file:text-accent"
         />
