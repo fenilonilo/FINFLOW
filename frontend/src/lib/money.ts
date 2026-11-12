@@ -20,5 +20,5 @@ export const cmpMoney = (a: string, b: string): -1 | 0 | 1 => {
 }
 export const pct = (part: string, whole: string): number => {
   const w = toCents(whole)
-  return w === 0n ? 0 : Math.round(Number((toCents(part) * 1000n) / w)) / 10
+  return w === 0n ? 0 : Math.round((Number(toCents(part)) / Number(w)) * 1000) / 10
 }
