@@ -186,3 +186,38 @@ body::after {
 .lanc .tx .a { font-family: var(--f-num); font-variant-numeric: tabular-nums lining-nums; font-weight: 500; font-size: 14.5px; }
 .lanc .tx .a.in { color: var(--g); }
 .lanc .pill-card { display: inline-block; width: 14px; height: 9px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+
+/* importar */
+.imp { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.imp .c3 { grid-column: 1 / -1; }
+.imp .c2 { display: flex; flex-direction: column; }
+@media (max-width: 1099px) { .imp { grid-template-columns: minmax(0, 1fr); } }
+.imp .card-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; }
+.scroll { max-height: min(46vh, 520px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(126, 224, 138, .25) transparent; margin: 0 -8px; padding: 0 8px; }
+.prev thead th { position: sticky; top: 0; z-index: 1; background: rgba(9, 16, 11, .97); padding-top: 4px; }
+.hist { margin-top: 14px; }
+.hist .r { display: flex; justify-content: space-between; font-size: 13px; padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, .05); }
+.hist .r span:last-child { color: var(--mu); }
+.drop { flex: 1; border: 1.5px dashed rgba(126, 224, 138, .3); border-radius: 18px; padding: 28px 22px; text-align: center; cursor: pointer; transition: all .25s var(--ease); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; }
+.drop:hover, .drop:focus-visible { border-color: var(--g); background: rgba(126, 224, 138, .05); box-shadow: 0 0 40px rgba(126, 224, 138, .1) inset; outline: none; }
+.drop .ic { width: 54px; height: 54px; margin-bottom: 14px; border-radius: 16px; display: grid; place-items: center; background: rgba(126, 224, 138, .1); color: var(--g); font-size: 22px; }
+.drop b { display: block; font-weight: 600; margin-bottom: 4px; }
+.meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.meta div { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .025); border: 1px solid rgba(255, 255, 255, .05); font-size: 12px; color: var(--mu); }
+.meta b { display: block; color: var(--tx); font-size: 15px; font-family: var(--f-num); font-weight: 600; margin-top: 2px; }
+.imp-opts { display: flex; gap: 10px; margin-bottom: 14px; }
+.imp-opts select, .imp-opts input, .prev td select { background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; color: var(--tx); padding: 7px 10px; font-size: 13px; color-scheme: dark; }
+.empty { height: 100%; min-height: 130px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.ghost { height: 12px; border-radius: 6px; background: linear-gradient(90deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .08), rgba(255, 255, 255, .04)); background-size: 200% 100%; animation: shim 2.2s linear infinite; }
+@keyframes shim { to { background-position: -200% 0; } }
+.prev table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.prev th { text-align: left; font-weight: 600; color: var(--mu2); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; padding: 0 8px 8px; }
+.prev td { padding: 10px 8px; border-top: 1px solid rgba(255, 255, 255, .04); }
+.prev td:last-child, .prev th:last-child { text-align: right; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.prev tr.dup td { opacity: .42; text-decoration: line-through; }
+.prev tr.refunded td, .prev tr.ignored td { opacity: .6; }
+.prev .tag { color: var(--mu); font-size: 11px; }
+.ai { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; color: inherit; cursor: pointer; background: rgba(126, 224, 138, .08); border: 1px solid rgba(126, 224, 138, .18); }
+.ai::before { content: '✦'; color: var(--g); font-size: 10px; }
+.prev-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
+@media (prefers-reduced-motion: reduce) { .ghost { animation: none; } .drop { transition: none; } }
