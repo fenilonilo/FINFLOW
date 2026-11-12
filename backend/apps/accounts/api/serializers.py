@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.models import DeviceSession
@@ -25,9 +27,24 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "email", "first_name"]
+        fields = ["id", "email", "first_name", "avatar_url"]
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_avatar_url(self, obj) -> str | None:
+        return obj.avatar.url if obj.avatar else None
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    first_name = serializers.CharField(required=False, max_length=150)
+    email = serializers.EmailField(required=False)
+
+
+class AvatarUploadSerializer(serializers.Serializer):
+    avatar = serializers.FileField()
 
 
 class DeviceSessionSerializer(serializers.ModelSerializer):
