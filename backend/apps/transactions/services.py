@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import re
 from decimal import ROUND_FLOOR, Decimal
+from types import SimpleNamespace
 from typing import Any
 
 from django.db import transaction as db_transaction
@@ -33,6 +34,7 @@ from apps.transactions.models import (
 from apps.transactions.repositories import (
     DebtRepository,
     RecurringExpenseRepository,
+    StatementImportRepository,
     TransactionRepository,
 )
 
@@ -119,10 +121,7 @@ class RecurringExpenseService:
     def ensure_month(self, user_id: int, year: int, month: int) -> int:
         """R1: gera (idempotente) os fixos do mês. Retorna quantos criou."""
         created = 0
-        card_ids: set[int] = set()
         for template in self._recurring.list_active(user_id):
-            if template.card_id:
-                card_ids.add(template.card_id)
             if template.start_date and (year, month) < (
                 template.start_date.year,
                 template.start_date.month,
@@ -152,8 +151,6 @@ class RecurringExpenseService:
                 }
             )
             created += 1
-        for card_id in card_ids:
-            self.sync_card_fixed(user_id, card_id, year, month)
         return created
 
     def delete_template(
@@ -164,21 +161,6 @@ class RecurringExpenseService:
         with db_transaction.atomic():
             self._recurring.delete_future_unpaid(template, today.year, today.month)
             template.delete()  # transações restantes ficam (SET_NULL)
-
-    def sync_card_fixed(
-        self, user_id: int, card_id: int, year: int, month: int
-    ) -> None:
-        """R3: valor do fixo vinculado ao cartão = soma dos itens de crédito."""
-        total = self._recurring.card_credit_total(user_id, card_id, year, month)
-        if total is None:
-            return
-        for template in self._recurring.list_by_card(user_id, card_id):
-            tx = self._recurring.get_transaction_for_month(
-                template.id, user_id, year, month
-            )
-            if tx is not None and tx.amount != total:
-                tx.amount = total
-                tx.save(update_fields=["amount", "updated_at"])
 
     def propagate(self, tx: Transaction, fields: dict[str, Any]) -> None:
         """R2: amount/description/category_id do fixo vão ao template e às
@@ -545,9 +527,12 @@ class StatementImportService:
         kind: str,
         year: int | None = None,
         month: int | None = None,
+        categories: dict[int, int | None] | None = None,
+        dry_run: bool = False,
     ) -> dict[str, Any]:
         from apps.common.exceptions import ValidationDomainError
 
+        chosen = categories or {}
         if kind not in (CardFunction.CREDIT, CardFunction.DEBIT):
             raise ValidationDomainError({"kind": ["Use 'credit' ou 'debit'."]})
         if kind == CardFunction.CREDIT and not (year and month):
@@ -555,18 +540,24 @@ class StatementImportService:
                 {"year": ["Mês da fatura é obrigatório para crédito."]}
             )
         card = CardRepository.get_by_id(card_id, user_id)
-        pm = CardPaymentMethodRepository.get_or_create_function(card, kind)
+        if not card.is_active:
+            raise ValidationDomainError({"card": ["Cartão inativo."]})
         rows = parse_statement(file_bytes, filename)
-        categories = {
-            c.name.lower(): c for c in CategoryRepository.list_by_user(user_id)
-        }
+        user_cats = CategoryRepository.list_by_user(user_id)
+        by_id = {c.id: c for c in user_cats}
+        if any(cid is not None and cid not in by_id for cid in chosen.values()):
+            raise ValidationDomainError({"categories": ["Categoria inválida."]})
+        categories = {c.name.lower(): c for c in user_cats}
 
+        refunded = self._pair_refunds(rows) if kind == CardFunction.CREDIT else set()
         # LLM só para despesas sem palavra-chave; uma chamada por importação.
         to_classify = list(
             dict.fromkeys(
                 r.description
-                for r in rows
+                for i, r in enumerate(rows)
                 if r.outflow
+                and i not in chosen
+                and i not in refunded
                 and not _IGNORE_RE.search(r.description)
                 and _keyword_category(r.description) is None
             )
@@ -587,7 +578,8 @@ class StatementImportService:
         total = Decimal("0")
 
         with db_transaction.atomic():
-            for row, key in zip(rows, keys, strict=True):
+            pm = CardPaymentMethodRepository.get_or_create_function(card, kind)
+            for idx, (row, key) in enumerate(zip(rows, keys, strict=True)):
                 comp = (
                     (year, month)
                     if kind == CardFunction.CREDIT
@@ -603,10 +595,14 @@ class StatementImportService:
                     "date": row.date.isoformat(),
                     "description": row.description,
                     "amount": str(row.amount.quantize(Decimal("0.01"))),
+                    "index": idx,
                     "category": None,
+                    "category_id": None,
                     "status": "created",
                 }
-                if _IGNORE_RE.search(row.description) or (
+                if idx in refunded:
+                    item["status"] = "refunded"
+                elif _IGNORE_RE.search(row.description) or (
                     kind == CardFunction.CREDIT and not row.outflow
                 ):
                     item["status"] = "ignored"
@@ -615,12 +611,17 @@ class StatementImportService:
                 ):
                     item["status"] = "duplicate"
                 else:
-                    category = (
-                        None
-                        if tx_type == TransactionType.INCOME
-                        else self._category_for(row, categories, user_id, llm)
-                    )
+                    if chosen.get(idx) is not None:
+                        category = by_id[chosen[idx]]
+                    elif tx_type == TransactionType.INCOME:
+                        category = None
+                    else:
+                        # null em `categories` = fallback "Outros", sem LLM
+                        category = self._category_for(
+                            row, categories, user_id, llm, idx in chosen, dry_run
+                        )
                     item["category"] = category.name if category else None
+                    item["category_id"] = category.id if category else None
                     self._tx.create(
                         {
                             "user_id": user_id,
@@ -645,10 +646,20 @@ class StatementImportService:
                 if item["status"] != "created":
                     skipped += 1
                 items.append(item)
-
-            if kind == CardFunction.CREDIT and year and month:
-                self._recurring.ensure_month(user_id, year, month)
-                self._recurring.sync_card_fixed(user_id, card_id, year, month)
+            if dry_run:
+                db_transaction.set_rollback(True)
+            else:
+                StatementImportRepository.create(
+                    user_id=user_id,
+                    card_id=card_id,
+                    kind=kind,
+                    year=year,
+                    month=month,
+                    filename=filename[:255],
+                    created_count=created,
+                    skipped_count=skipped,
+                    total=total,
+                )
 
         return {
             "created": created,
@@ -656,6 +667,28 @@ class StatementImportService:
             "total": str(total.quantize(Decimal("0.01"))),
             "items": items,
         }
+
+    @staticmethod
+    def _pair_refunds(rows: list[ParsedRow]) -> set[int]:
+        """Estorno (inflow que não é pagamento) anula compra de mesmo valor e
+        descrição, preferindo a de data mais próxima. Retorna índices pareados."""
+        paired: set[int] = set()
+        for i, r in enumerate(rows):
+            if r.outflow or _IGNORE_RE.search(r.description):
+                continue
+            desc = r.description.strip().lower()
+            candidates = [
+                j
+                for j, p in enumerate(rows)
+                if p.outflow
+                and j not in paired
+                and p.amount == r.amount
+                and p.description.strip().lower() == desc
+            ]
+            if candidates:
+                j = min(candidates, key=lambda j: abs((rows[j].date - r.date).days))
+                paired |= {i, j}
+        return paired
 
     @staticmethod
     def _keys(card_id: int, rows: list[ParsedRow]) -> list[str]:
@@ -692,12 +725,18 @@ class StatementImportService:
         categories: dict[str, Any],
         user_id: int,
         llm: dict[str, str | None],
+        fallback_only: bool = False,
+        dry_run: bool = False,
     ) -> Any:
-        wanted = _keyword_category(row.description) or llm.get(row.description)
-        if wanted is None and row.bank_category:
-            wanted = row.bank_category
+        wanted = None
+        if not fallback_only:
+            wanted = _keyword_category(row.description) or llm.get(row.description)
+            if wanted is None and row.bank_category:
+                wanted = row.bank_category
         cat = categories.get((wanted or "").lower()) or categories.get("outros")
         if cat is None:
+            if dry_run:  # prévia nunca materializa "Outros"
+                return SimpleNamespace(id=None, name="Outros")
             cat = CategoryRepository.create_named(user_id, "Outros")
             categories["outros"] = cat
         return cat

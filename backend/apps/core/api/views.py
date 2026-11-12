@@ -40,7 +40,7 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = PaymentMethod.objects.filter(user=self.request.user).select_related("card")
         if not self.request.query_params.get("include_archived"):
-            qs = qs.filter(is_archived=False)
+            qs = qs.filter(is_archived=False).exclude(card__is_active=False)
         return qs
 
     def perform_create(self, serializer):

@@ -3,7 +3,6 @@ from decimal import Decimal
 from django.db.models import Sum
 
 from apps.transactions.models import Transaction, TransactionType
-from apps.transactions.repositories import without_invoice_when_items
 
 
 class AnalyticsRepository:
@@ -11,13 +10,11 @@ class AnalyticsRepository:
     def category_trends_by_year(user_id: int, year: int) -> dict:
         """Returns {(category_name, color): {month: total}} for paid expenses."""
         rows = (
-            without_invoice_when_items(
-                Transaction.objects.filter(
-                    user_id=user_id,
-                    year=year,
-                    type=TransactionType.EXPENSE,
-                    is_paid=True,
-                )
+            Transaction.objects.filter(
+                user_id=user_id,
+                year=year,
+                type=TransactionType.EXPENSE,
+                is_paid=True,
             )
             .values("month", "category__name", "category__color")
             .annotate(total=Sum("amount"))
@@ -35,13 +32,11 @@ class AnalyticsRepository:
     ) -> list[tuple[str, str, Decimal]]:
         """Returns [(category_name, color, total)] sorted by total desc."""
         rows = (
-            without_invoice_when_items(
-                Transaction.objects.filter(
-                    user_id=user_id,
-                    year=year,
-                    type=TransactionType.EXPENSE,
-                    is_paid=True,
-                )
+            Transaction.objects.filter(
+                user_id=user_id,
+                year=year,
+                type=TransactionType.EXPENSE,
+                is_paid=True,
             )
             .values("category__name", "category__color")
             .annotate(total=Sum("amount"))

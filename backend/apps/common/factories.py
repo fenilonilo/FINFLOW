@@ -19,6 +19,7 @@ from apps.transactions.models import (
     Debt,
     RecurringExpense,
     RecurringStatus,
+    StatementImport,
     Transaction,
     TransactionKind,
     TransactionType,
@@ -151,6 +152,8 @@ class CardFactory(DjangoModelFactory):
     closing_day = 12
     due_day = 19
     limit = None
+    bank = "other"
+    is_active = True
 
 
 class CardInvoiceFactory(DjangoModelFactory):
@@ -193,3 +196,18 @@ class AcquisitionInstallmentFactory(DjangoModelFactory):
     interest_portion = Decimal("159.20")
     principal_portion = Decimal("263.74")
     remaining_balance = Decimal("7736.26")
+
+
+class StatementImportFactory(DjangoModelFactory):
+    class Meta:
+        model = StatementImport
+
+    user = factory.SubFactory(UserFactory)
+    card = factory.SubFactory(CardFactory, user=factory.SelfAttribute("..user"))
+    kind = "credit"
+    year = 2026
+    month = 11
+    filename = "fatura.csv"
+    created_count = 1
+    skipped_count = 0
+    total = Decimal("10.00")

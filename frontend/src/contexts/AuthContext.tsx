@@ -1,11 +1,13 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { api, setAccessToken } from '@/api/client'
+import { postLogin } from '@/api/auth'
 import type { User } from '@/types/models'
 
 interface AuthContextValue {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  setUser: Dispatch<SetStateAction<User | null>>
   logout: () => Promise<void>
 }
 
@@ -34,10 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(email: string, password: string) {
-    const { data } = await api.post<{ access: string; refresh: string }>('/auth/token/', {
-      email,
-      password,
-    })
+    const { data } = await postLogin(email, password)
     setAccessToken(data.access)
     localStorage.setItem('refresh_token', data.refresh)
     const me = await api.get<User>('/auth/me/')
@@ -57,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   )

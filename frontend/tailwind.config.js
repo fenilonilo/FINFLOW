@@ -4,6 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        ink: '#040605',
+        g: '#7ee08a',
+        g2: '#3f9a50',
+        fx: '#5b8fc7',
+        mu: '#8aa38e',
+        mu2: '#5f7764',
+        tx: '#ecf3ed',
         base: '#0a0f1a',
         surface: '#111827',
         elevated: '#1b2434',
@@ -16,7 +23,8 @@ export default {
         'text-muted': '#94a3b8',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        display: ['"Playfair Display"', 'serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',

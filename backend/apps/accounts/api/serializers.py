@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.accounts.models import DeviceSession
@@ -25,15 +26,51 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "email", "first_name"]
+        fields = ["id", "email", "first_name", "avatar_url"]
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_avatar_url(self, obj) -> str | None:
+        return obj.avatar.url if obj.avatar else None
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    first_name = serializers.CharField(required=False, max_length=150)
+    email = serializers.EmailField(required=False)
+
+
+class AvatarUploadSerializer(serializers.Serializer):
+    avatar = serializers.FileField()
 
 
 class DeviceSessionSerializer(serializers.ModelSerializer):
+    is_current = serializers.SerializerMethodField()
+
     class Meta:
         model = DeviceSession
-        fields = ["id", "device_name", "last_seen_at", "created_at", "revoked"]
+        fields = [
+            "id",
+            "device_name",
+            "last_seen_at",
+            "created_at",
+            "revoked",
+            "is_current",
+        ]
+
+    def get_is_current(self, obj) -> bool:
+        return obj.id == self.context.get("sid")
+
+
+class TokenPairSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class LoginSerializer(serializers.Serializer):

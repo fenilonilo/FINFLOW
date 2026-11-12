@@ -21,7 +21,9 @@ class CardRepository:
     @staticmethod
     def list_by_user(user_id: int) -> list[Card]:
         return list(
-            Card.objects.filter(user_id=user_id).prefetch_related("payment_methods")
+            Card.objects.filter(user_id=user_id)
+            .order_by("-is_active", "id")
+            .prefetch_related("payment_methods")
         )
 
     @staticmethod

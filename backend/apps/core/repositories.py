@@ -57,5 +57,5 @@ class PaymentMethodRepository:
     ) -> list[PaymentMethod]:
         qs = PaymentMethod.objects.filter(user_id=user_id)
         if not include_archived:
-            qs = qs.filter(is_archived=False)
+            qs = qs.filter(is_archived=False).exclude(card__is_active=False)
         return list(qs)

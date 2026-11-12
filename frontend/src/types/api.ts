@@ -193,6 +193,22 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        patch: operations["v1_auth_me_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/auth/me/avatar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_auth_me_avatar_create"];
+        delete: operations["v1_auth_me_avatar_destroy"];
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -219,7 +235,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["v1_auth_sessions_retrieve"];
+        get: operations["v1_auth_sessions_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -450,6 +466,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["v1_debts_advance_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_imports_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -774,6 +806,29 @@ export interface components {
          * @enum {string}
          */
         AmortizationSystemEnum: "price" | "sac" | "none";
+        AvatarUpload: {
+            /** Format: uri */
+            avatar: string;
+        };
+        /**
+         * @description * `nubank` - Nubank
+         *     * `inter` - Inter
+         *     * `itau` - Itaú
+         *     * `bradesco` - Bradesco
+         *     * `santander` - Santander
+         *     * `bb` - Banco do Brasil
+         *     * `caixa` - Caixa
+         *     * `c6` - C6 Bank
+         *     * `xp` - XP
+         *     * `btg` - BTG Pactual
+         *     * `picpay` - PicPay
+         *     * `mercadopago` - Mercado Pago
+         *     * `neon` - Neon
+         *     * `pan` - Banco Pan
+         *     * `other` - Outro
+         * @enum {string}
+         */
+        BankEnum: "nubank" | "inter" | "itau" | "bradesco" | "santander" | "bb" | "caixa" | "c6" | "xp" | "btg" | "picpay" | "mercadopago" | "neon" | "pan" | "other";
         Card: {
             readonly id: number;
             name: string;
@@ -782,6 +837,8 @@ export interface components {
             due_day: number;
             /** Format: decimal */
             limit?: string | null;
+            bank?: components["schemas"]["BankEnum"];
+            is_active?: boolean;
             functions: components["schemas"]["FunctionsEnum"][];
             readonly active_functions: string;
         };
@@ -831,6 +888,16 @@ export interface components {
             is_settled?: boolean;
             readonly card_detail: string;
         };
+        DeviceSession: {
+            readonly id: number;
+            device_name: string;
+            /** Format: date-time */
+            readonly last_seen_at: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            revoked?: boolean;
+            readonly is_current: boolean;
+        };
         /**
          * @description * `credit` - Credit
          *     * `debit` - Debit
@@ -853,6 +920,15 @@ export interface components {
             month: number;
             /** Format: decimal */
             target_amount: string;
+        };
+        Login: {
+            /** Format: email */
+            email: string;
+            password: string;
+            device_name?: string;
+        };
+        Logout: {
+            refresh?: string;
         };
         /** @enum {unknown} */
         NullEnum: null;
@@ -1042,6 +1118,8 @@ export interface components {
             due_day?: number;
             /** Format: decimal */
             limit?: string | null;
+            bank?: components["schemas"]["BankEnum"];
+            is_active?: boolean;
             functions?: components["schemas"]["FunctionsEnum"][];
             readonly active_functions?: string;
         };
@@ -1113,11 +1191,15 @@ export interface components {
             readonly card_function?: (components["schemas"]["CardFunctionEnum"] | components["schemas"]["NullEnum"]) | null;
             readonly card_detail?: string;
         };
+        PatchedProfileUpdate: {
+            first_name?: string;
+            /** Format: email */
+            email?: string;
+        };
         PatchedRecurringExpense: {
             readonly id?: number;
             description?: string;
             type?: components["schemas"]["TypeEnum"];
-            card?: number | null;
             /** Format: date */
             start_date?: string | null;
             is_variable?: boolean;
@@ -1171,7 +1253,6 @@ export interface components {
             readonly id: number;
             description: string;
             type?: components["schemas"]["TypeEnum"];
-            card?: number | null;
             /** Format: date */
             start_date?: string | null;
             is_variable?: boolean;
@@ -1193,6 +1274,18 @@ export interface components {
          * @enum {string}
          */
         RecurringExpenseStatusEnum: "active" | "paused";
+        Register: {
+            readonly id: number;
+            /** Format: email */
+            email: string;
+            /** Primeiro nome */
+            first_name?: string;
+            password: string;
+        };
+        SessionTokenRefresh: {
+            refresh: string;
+            readonly access: string;
+        };
         StatementImport: {
             /** Format: uri */
             file: string;
@@ -1200,6 +1293,25 @@ export interface components {
             kind: components["schemas"]["StatementImportKindEnum"];
             year?: number;
             month?: number;
+            /** @default false */
+            dry_run: boolean;
+            categories?: string;
+        };
+        StatementImportHistory: {
+            readonly id: number;
+            readonly card_id: number;
+            card_name: string;
+            card_bank: string;
+            kind: string;
+            year?: number | null;
+            month?: number | null;
+            filename: string;
+            created_count: number;
+            skipped_count: number;
+            /** Format: decimal */
+            total: string;
+            /** Format: date-time */
+            readonly created_at: string;
         };
         /**
          * @description * `credit` - credit
@@ -1207,8 +1319,8 @@ export interface components {
          * @enum {string}
          */
         StatementImportKindEnum: "credit" | "debit";
-        TokenRefresh: {
-            readonly access: string;
+        TokenPair: {
+            access: string;
             refresh: string;
         };
         Transaction: {
@@ -1246,6 +1358,14 @@ export interface components {
          * @enum {string}
          */
         TypeEnum: "income" | "expense";
+        User: {
+            readonly id: number;
+            /** Format: email */
+            email: string;
+            /** Primeiro nome */
+            first_name?: string;
+            readonly avatar_url: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -1573,10 +1693,16 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Logout"];
+                "application/x-www-form-urlencoded": components["schemas"]["Logout"];
+                "multipart/form-data": components["schemas"]["Logout"];
+            };
+        };
         responses: {
             /** @description No response body */
-            200: {
+            205: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1593,8 +1719,75 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_auth_me_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProfileUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProfileUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedProfileUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_auth_me_avatar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["AvatarUpload"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    v1_auth_me_avatar_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1609,18 +1802,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Register"];
+                "application/x-www-form-urlencoded": components["schemas"]["Register"];
+                "multipart/form-data": components["schemas"]["Register"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
             };
         };
     };
-    v1_auth_sessions_retrieve: {
+    v1_auth_sessions_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -1629,12 +1829,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeviceSession"][];
+                };
             };
         };
     };
@@ -1644,6 +1845,7 @@ export interface operations {
             header?: never;
             path: {
                 id: number;
+                pk: number;
             };
             cookie?: never;
         };
@@ -1665,14 +1867,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Login"];
+                "application/x-www-form-urlencoded": components["schemas"]["Login"];
+                "multipart/form-data": components["schemas"]["Login"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
+                };
             };
         };
     };
@@ -1685,9 +1894,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
+                "application/json": components["schemas"]["SessionTokenRefresh"];
+                "application/x-www-form-urlencoded": components["schemas"]["SessionTokenRefresh"];
+                "multipart/form-data": components["schemas"]["SessionTokenRefresh"];
             };
         };
         responses: {
@@ -1696,7 +1905,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
+                    "application/json": components["schemas"]["SessionTokenRefresh"];
                 };
             };
         };
@@ -2350,6 +2559,25 @@ export interface operations {
             };
         };
     };
+    v1_imports_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementImportHistory"][];
+                };
+            };
+        };
+    };
     v1_imports_statement_create: {
         parameters: {
             query?: never;
@@ -2363,6 +2591,16 @@ export interface operations {
             };
         };
         responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
             201: {
                 headers: {
                     [name: string]: unknown;

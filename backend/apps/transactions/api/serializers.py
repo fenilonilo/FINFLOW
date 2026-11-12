@@ -1,10 +1,16 @@
+import json
 from decimal import Decimal
 
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.core.api.serializers import CategorySerializer, PaymentMethodSerializer
-from apps.transactions.models import Debt, RecurringExpense, Transaction
+from apps.transactions.models import (
+    Debt,
+    RecurringExpense,
+    StatementImport,
+    Transaction,
+)
 
 
 def _serialize_summary(summary):
@@ -106,7 +112,6 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             "id",
             "description",
             "type",
-            "card",
             "start_date",
             "is_variable",
             "category",
@@ -142,6 +147,23 @@ class StatementImportSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=["credit", "debit"])
     year = serializers.IntegerField(required=False)
     month = serializers.IntegerField(required=False, min_value=1, max_value=12)
+    dry_run = serializers.BooleanField(required=False, default=False)
+    categories = serializers.CharField(required=False)
+
+    def validate_categories(self, value: str) -> dict[int, int | None]:
+        try:
+            raw = json.loads(value)
+            out = {int(k): v for k, v in raw.items()}
+            if any(
+                v is not None and (isinstance(v, bool) or not isinstance(v, int))
+                for v in out.values()
+            ):
+                raise ValueError
+            return out
+        except (ValueError, TypeError, AttributeError):
+            raise serializers.ValidationError(
+                "Use um JSON {indice: id_categoria|null}."
+            ) from None
 
 
 class GenerateVariableItemSerializer(serializers.Serializer):
@@ -188,3 +210,15 @@ class DebtSerializer(serializers.ModelSerializer):
                 {"origin": ["Dívida de cartão não é editável; exclua e relance."]}
             )
         return data
+
+
+class StatementImportHistorySerializer(serializers.ModelSerializer):
+    card_name = serializers.CharField(source="card.name")
+    card_bank = serializers.CharField(source="card.bank")
+
+    class Meta:
+        model = StatementImport
+        fields = [
+            "id", "card_id", "card_name", "card_bank", "kind", "year", "month",
+            "filename", "created_count", "skipped_count", "total", "created_at",
+        ]  # fmt: skip

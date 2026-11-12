@@ -1,5 +1,5 @@
 # ruff: noqa
-"""Validação manual R1-R6. Uso (container):
+"""Validação manual R1, R2, R5, R6. Uso (container):
 docker compose exec -T backend uv run python manage.py shell < apps/transactions/fixtures_import/validate_domain.py
 """
 
@@ -13,7 +13,6 @@ from apps.cards.services import CardService
 from apps.core.models import Category
 from apps.transactions.models import RecurringExpense, Transaction
 from apps.transactions.services import (
-    MonthSummaryService,
     RecurringExpenseService,
     StatementImportService,
     TransactionService,
@@ -68,22 +67,12 @@ try:
         due_day=17,
         start_date=datetime.date(2026, 11, 1),
     )
-    fat = mk(
-        description="Inter",
-        type="expense",
-        category=cat("Contas"),
-        payment_method=debit_pm,
-        default_amount=Decimal("996.14"),
-        due_day=14,
-        card=card,
-        start_date=datetime.date(2026, 11, 1),
-    )
     # R1
     assert rs.ensure_month(u.id, 2026, 10) == 0, "antes do start_date"
-    assert rs.ensure_month(u.id, 2026, 11) == 3
+    assert rs.ensure_month(u.id, 2026, 11) == 2
     assert rs.ensure_month(u.id, 2026, 11) == 0, "idempotente"
-    assert rs.ensure_month(u.id, 2026, 12) == 3
-    assert rs.ensure_month(u.id, 2027, 1) == 3
+    assert rs.ensure_month(u.id, 2026, 12) == 2
+    assert rs.ensure_month(u.id, 2027, 1) == 2
     print("R1 ok")
     # R2
     tsvc = TransactionService()
@@ -124,11 +113,6 @@ try:
     assert (parc.installment_current, parc.installment_total) == (2, 3)
     assert parc.category.name == "Vestuário"
     assert items.get(description="UBER *TRIP").category.name == "Uber/transporte"
-    # R3
-    inv = Transaction.objects.get(user=u, recurring_source=fat, month=11, year=2026)
-    expected = Decimal("25.90") + 48 + 48 + Decimal("1234.56")
-    assert inv.amount == expected, (inv.amount, expected)
-    print("R3 ok", inv.amount)
     # reimport => tudo duplicado
     res2 = imp.import_file(
         u.id,
@@ -144,13 +128,6 @@ try:
         and [i["status"] for i in res2["items"]][:4] == ["duplicate"] * 4
     ), res2
     print("dedup + latin-1 ok")
-    # R4
-    s = MonthSummaryService().get_summary(u.id, 2026, 11)
-    assert s.total_expense == expected + Decimal("13.00"), s.total_expense
-    assert s.total_income == Decimal("8000.00")
-    cats = {c["category__name"]: c["total"] for c in s.by_category}
-    assert "Contas" not in cats and cats["Vestuário"] == Decimal("1234.56"), cats
-    print("R4 ok", s.total_expense, cats)
     # extrato (débito): Spotify 13,00 bate com fixo => duplicate; salário 8000 => duplicate
     res3 = imp.import_file(
         u.id, (D / "inter_extrato.csv").read_bytes(), "e.csv", card.id, "debit"

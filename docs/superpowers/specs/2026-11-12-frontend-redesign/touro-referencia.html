@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Touro · versão 2 · giro leve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+<style>
+  :root { --g:#7ee08a; --mu:#86a08a; --tx:#e9f2ea; }
+  * { box-sizing:border-box; margin:0; }
+  html,body { height:100%; background:#040605; color:var(--tx); font-family:Geist, system-ui, sans-serif; overflow:hidden; }
+  .glow { position:fixed; inset:0; pointer-events:none;
+    background:
+      radial-gradient(60% 45% at 22% 28%, rgba(126,224,138,.16), transparent 70%),
+      radial-gradient(40% 60% at 75% 70%, rgba(40,110,55,.18), transparent 70%),
+      radial-gradient(120% 90% at 50% 50%, #0b150d 0%, #040605 70%); }
+  canvas { position:fixed; inset:0; display:block; }
+  .grain { position:fixed; inset:-50%; pointer-events:none; opacity:.09; z-index:5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 1.2s steps(6) infinite; }
+  @keyframes grain { 0%{transform:translate(0,0)} 20%{transform:translate(-3%,2%)} 40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-1%)} 80%{transform:translate(3%,3%)} 100%{transform:translate(0,0)} }
+
+  .ui { position:fixed; inset:0; z-index:10; pointer-events:none; display:flex; gap:28px; padding:28px; transition:opacity .4s cubic-bezier(.2,.8,.2,1); }
+  .ui.hidden { opacity:0; }
+  nav { width:200px; display:flex; flex-direction:column; gap:4px; }
+  .logo { font-family:'Instrument Serif'; font-size:30px; margin-bottom:28px; letter-spacing:.01em; }
+  .logo i { color:var(--g); }
+  .nav-i { padding:10px 14px; border-radius:10px; font-size:14px; color:var(--mu); }
+  .nav-i.on { background:rgba(126,224,138,.08); color:var(--tx); box-shadow:inset 0 0 0 1px rgba(126,224,138,.15); }
+  main { flex:1; max-width:560px; padding-top:6px; }
+  .eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--mu); }
+  h1 { font-family:'Instrument Serif'; font-weight:400; font-size:64px; line-height:1; margin:10px 0 26px; }
+  h1 i { color:var(--g); }
+  .glass { background:rgba(10,18,12,.45); border:1px solid rgba(126,224,138,.12); border-radius:16px; padding:18px 20px;
+    backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); margin-bottom:12px; }
+  .num { font-family:'Geist Mono'; font-size:30px; letter-spacing:-.02em; margin-top:6px; }
+  .num small { font-size:14px; color:var(--mu); }
+  .track { height:6px; border-radius:99px; background:rgba(255,255,255,.06); margin-top:14px; overflow:hidden; }
+  .track b { display:block; height:100%; width:62%; border-radius:99px; background:linear-gradient(90deg,#3f8f4c,var(--g)); box-shadow:0 0 18px rgba(126,224,138,.5); }
+  .tx { display:flex; justify-content:space-between; padding:11px 0; border-top:1px solid rgba(255,255,255,.05); font-size:14px; }
+  .tx span:last-child { font-family:'Geist Mono'; }
+
+  .ctrl { position:fixed; right:24px; bottom:24px; z-index:20; display:flex; gap:8px; }
+  .ctrl button { pointer-events:auto; font:500 13px Geist; color:var(--tx); background:rgba(10,18,12,.7); border:1px solid rgba(126,224,138,.2);
+    padding:10px 16px; border-radius:999px; cursor:pointer; backdrop-filter:blur(10px); transition:transform .16s cubic-bezier(.2,.8,.2,1), background .2s; }
+  .ctrl button:hover { background:rgba(30,60,36,.8); }
+  .ctrl button:active { transform:scale(.96); }
+  .hint { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:20; font-size:12px; color:var(--mu); letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<canvas id="c"></canvas>
+<div class="grain"></div>
+
+<div class="ui" id="ui">
+  <nav>
+    <div class="logo">Fin<i>flow</i></div>
+    <div class="nav-i on">Lançamentos</div>
+    <div class="nav-i">Importar</div>
+    <div class="nav-i">Visão</div>
+  </nav>
+  <main>
+    <div class="eyebrow">Novembro · 2026</div>
+    <h1>Lança<i>mentos</i></h1>
+    <div class="glass">
+      <div class="eyebrow">Fixos previstos do mês</div>
+      <div class="num">R$ 4.950<small>,00</small></div>
+      <div class="track"><b></b></div>
+    </div>
+    <div class="glass">
+      <div class="tx"><span>Mercado Extra</span><span>− 312,40</span></div>
+      <div class="tx"><span>Salário</span><span style="color:var(--g)">+ 9.800,00</span></div>
+      <div class="tx"><span>Netflix</span><span>− 55,90</span></div>
+    </div>
+  </main>
+</div>
+
+<div class="hint">mova o mouse · passe por cima do touro · clique para onda de choque</div>
+<div class="ctrl">
+  <button id="swap">Simular troca de aba</button>
+  <button id="toggle">Esconder interface</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+const PR = Math.min(devicePixelRatio, 2);
+renderer.setPixelRatio(PR);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+camera.position.set(0, 0, 10);
+const group = new THREE.Group();
+scene.add(group);
+
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  group.position.x = innerWidth > 900 ? 2.2 : 0;
+}
+addEventListener('resize', resize); resize();
+
+// ---- sample bull from photo ----
+const img = new Image();
+img.src = 'touro.jpg';
+await img.decode();
+const X0 = 90, Y0 = 360, W = 560, H = 590;
+const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+const cx = cv.getContext('2d', { willReadFrequently: true });
+cx.drawImage(img, X0, Y0, W, H, 0, 0, W, H);
+const px = cx.getImageData(0, 0, W, H).data;
+const lum = new Float32Array(W * H);
+for (let i = 0; i < W * H; i++) lum[i] = 0.299 * px[i*4] + 0.587 * px[i*4+1] + 0.114 * px[i*4+2];
+
+// chamfer distance to silhouette edge -> thickness
+const dist = new Float32Array(W * H);
+for (let i = 0; i < W * H; i++) dist[i] = lum[i] > 22 ? 1e9 : 0;
+const D1 = 1, D2 = 1.414;
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const i = y * W + x; if (!dist[i]) continue;
+  let d = dist[i];
+  if (x > 0) d = Math.min(d, dist[i-1] + D1);
+  if (y > 0) { d = Math.min(d, dist[i-W] + D1); if (x > 0) d = Math.min(d, dist[i-W-1] + D2); if (x < W-1) d = Math.min(d, dist[i-W+1] + D2); }
+  dist[i] = d;
+}
+for (let y = H-1; y >= 0; y--) for (let x = W-1; x >= 0; x--) {
+  const i = y * W + x; if (!dist[i]) continue;
+  let d = dist[i];
+  if (x < W-1) d = Math.min(d, dist[i+1] + D1);
+  if (y < H-1) { d = Math.min(d, dist[i+W] + D1); if (x < W-1) d = Math.min(d, dist[i+W+1] + D2); if (x > 0) d = Math.min(d, dist[i+W-1] + D2); }
+  dist[i] = d;
+}
+let dmax = 0; for (let i = 0; i < W * H; i++) if (dist[i] < 1e8) dmax = Math.max(dmax, dist[i]);
+
+const S = 5.6 / H, DEPTH = 1.25;
+const pos = [], scat = [], size = [], bright = [], delay = [];
+function push(x, y, z, s, b) {
+  pos.push(x, y, z);
+  const r = 7 + Math.random() * 6, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+  scat.push(r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th) * 0.6, r * Math.cos(ph) - 3);
+  size.push(s); bright.push(b);
+  delay.push(Math.min(1, Math.max(0, (x + 3) / 6 * 0.7 + Math.random() * 0.3)));
+}
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  const i = y * W + x, L = lum[i];
+  if (L <= 22) continue;
+  const t = Math.sqrt(dist[i] / dmax);
+  const n = L / 255;
+  const p = 0.07 + Math.pow(n, 1.4) * 1.1;
+  if (Math.random() > p) continue;
+  const wx = (x - W / 2) * S, wy = -(y - H / 2) * S;
+  if (n > 0.3) { // mesh lines & vertices live on the surface (front and back)
+    const z = (Math.random() < 0.5 ? 1 : -1) * t * DEPTH + (Math.random() - .5) * 0.03;
+    push(wx, wy, z, n > 0.8 ? 4.5 + Math.random() * 2.5 : 2.0 + n * 1.6, Math.min(1, n * 1.3));
+  } else {             // body fill inside the volume
+    push(wx, wy, (Math.random() * 2 - 1) * t * DEPTH, 1.6, 0.35 + n * 0.6);
+  }
+}
+// floating dust around
+for (let k = 0; k < 3800; k++) { // starfield across the whole screen
+  push((Math.random() - .5) * 26, (Math.random() - .5) * 12, -6 + Math.random() * 9, 0.7 + Math.random() * 2.4, 0.18 + Math.random() * 0.55);
+}
+
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+geo.setAttribute('aScatter', new THREE.Float32BufferAttribute(scat, 3));
+geo.setAttribute('aSize', new THREE.Float32BufferAttribute(size, 1));
+geo.setAttribute('aBright', new THREE.Float32BufferAttribute(bright, 1));
+geo.setAttribute('aDelay', new THREE.Float32BufferAttribute(delay, 1));
+
+const uniforms = {
+  uTime: { value: 0 }, uMorph: { value: 0 }, uPR: { value: PR },
+  uMouse: { value: new THREE.Vector3() }, uMouseStr: { value: 0 },
+  uShockO: { value: new THREE.Vector3() }, uShockT: { value: 99 },
+};
+const mat = new THREE.ShaderMaterial({
+  uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: /* glsl */`
+    uniform float uTime, uMorph, uPR, uMouseStr, uShockT;
+    uniform vec3 uMouse, uShockO;
+    attribute vec3 aScatter; attribute float aSize, aBright, aDelay;
+    varying float vGlow, vBright, vAlpha;
+    void main() {
+      float m = clamp((uMorph - aDelay * 0.45) / 0.55, 0.0, 1.0);
+      m = m * m * (3.0 - 2.0 * m);
+      vec3 p = mix(aScatter, position, m);
+      vec2 dd = p.xy - uMouse.xy;
+      float f = smoothstep(1.0, 0.0, length(dd)) * uMouseStr;
+      p.xy += normalize(dd + 1e-4) * f * 0.16;
+      float r = uShockT * 5.0;
+      float s = smoothstep(0.45, 0.0, abs(length(p - uShockO) - r)) * exp(-uShockT * 1.4);
+      p += normalize(p - uShockO + 1e-4) * s * 0.45;
+      vGlow = clamp(f * 0.45 + s * 1.8 + (1.0 - m) * 0.7, 0.0, 1.0);
+      vec4 mv = modelViewMatrix * vec4(p, 1.0);
+      gl_PointSize = aSize * uPR * (1.0 + vGlow * 0.25) * (16.0 / -mv.z);
+      gl_Position = projectionMatrix * mv;
+      vBright = aBright;
+      vAlpha = 0.25 + 0.75 * m;
+    }`,
+  fragmentShader: /* glsl */`
+    varying float vGlow, vBright, vAlpha;
+    void main() {
+      float d = length(gl_PointCoord - 0.5);
+      if (d > 0.5) discard;
+      float a = smoothstep(0.5, 0.0, d); a *= a;
+      vec3 silver = vec3(0.80, 0.88, 0.84);
+      vec3 green = vec3(0.45, 0.96, 0.56);
+      vec3 col = mix(silver, green, clamp(vGlow + 0.12, 0.0, 1.0)) * (0.55 + vBright * 0.95);
+      gl_FragColor = vec4(col, a * vAlpha * (0.3 + vBright * 0.7));
+    }`,
+});
+group.add(new THREE.Points(geo, mat));
+
+// ---- interaction ----
+const mouse = new THREE.Vector2(0, 0); let inside = false;
+addEventListener('pointermove', e => { mouse.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); inside = true; });
+document.addEventListener('pointerleave', () => inside = false);
+const ray = new THREE.Raycaster(), plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), hit = new THREE.Vector3();
+function localMouse() {
+  ray.setFromCamera(mouse, camera);
+  ray.ray.intersectPlane(plane, hit);
+  return group.worldToLocal(hit.clone());
+}
+addEventListener('pointerdown', e => {
+  if (e.target.closest('button')) return;
+  uniforms.uShockO.value.copy(localMouse()); uniforms.uShockT.value = 0;
+});
+
+let morphTarget = 1, morphSpeed = 0.55;
+document.getElementById('swap').onclick = () => {
+  morphTarget = 0; morphSpeed = 1.6;
+  setTimeout(() => { morphTarget = 1; morphSpeed = 0.6; }, 650);
+};
+const ui = document.getElementById('ui');
+document.getElementById('toggle').onclick = e => {
+  ui.classList.toggle('hidden');
+  e.target.textContent = ui.classList.contains('hidden') ? 'Mostrar interface' : 'Esconder interface';
+};
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  uniforms.uTime.value = t;
+  uniforms.uShockT.value += dt;
+  const m = uniforms.uMorph.value;
+  uniforms.uMorph.value = m + Math.sign(morphTarget - m) * Math.min(Math.abs(morphTarget - m), dt * morphSpeed);
+  uniforms.uMouse.value.lerp(localMouse(), 0.18);
+  uniforms.uMouseStr.value += ((inside ? 1 : 0) - uniforms.uMouseStr.value) * 0.08;
+  group.rotation.y += ((mouse.x * 0.14) - group.rotation.y) * 0.04;
+  group.rotation.x += ((-mouse.y * 0.05) - group.rotation.x) * 0.04;
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

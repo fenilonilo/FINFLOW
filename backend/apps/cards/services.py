@@ -30,6 +30,8 @@ class CardService:
                     "closing_day": dto.closing_day,
                     "due_day": dto.due_day,
                     "limit": dto.limit,
+                    "bank": dto.bank,
+                    "is_active": dto.is_active,
                 },
             )
             for function in dto.functions:
@@ -45,6 +47,8 @@ class CardService:
             card.closing_day = dto.closing_day
             card.due_day = dto.due_day
             card.limit = dto.limit
+            card.bank = dto.bank
+            card.is_active = dto.is_active
             card.save()
             CardPaymentMethodRepository.sync_card_attrs(card)
             current = set(CardPaymentMethodRepository.active_functions(card))
@@ -107,6 +111,8 @@ class CardInvoiceService:
                     committed_pct=committed_pct,
                     open_cycle_spend=open_cycle_spend,
                     invoice=invoice_dto,
+                    bank=card.bank,
+                    is_active=card.is_active,
                 )
             )
         return result

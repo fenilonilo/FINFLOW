@@ -1,11 +1,10 @@
-// Manual types mirroring section 6 of FINFLOW_PLANO_IMPLEMENTACAO_v2.md
-// DO NOT diverge from the section 6 contracts — these are frozen inter-agent interfaces.
-// Last regenerated: 2026-06-12 — fields updated from OpenAPI schema for cards integration.
+// Tipos de UI do redesign; os contratos da API vêm de types/api.ts (gerado).
 
 export interface User {
   id: number
   email: string
   first_name: string
+  avatar_url: string | null
 }
 
 export interface Category {
@@ -118,83 +117,23 @@ export interface MonthSummary {
   }>
 }
 
-export interface FinancialHealth {
-  avg_monthly_income: string
-  avg_monthly_expense: string
-  avg_monthly_invested: string
-  avg_balance: string
-  fixed_commitment_pct: string
-  savings_rate_pct: string
-  score: number
-  score_label: string
-}
-
-export interface Installment {
-  number: number
-  due_date: string
-  amount: string
-  interest_portion: string
-  principal_portion: string
-  remaining_balance: string
-}
-
-export interface SimulationResult {
-  input: Record<string, unknown>
-  financed_amount: string
-  monthly_payment_first: string
-  monthly_payment_last: string
-  total_paid: string
-  total_interest: string
-  effective_cost_pct: string
-  schedule: Installment[]
-  impact: {
-    baseline: FinancialHealth
-    projected: FinancialHealth
-    monthly_income_impact_pct: string
-    balance_reduction_pct: string
-    score_delta: number
-    months_negative_balance: number
-    opportunity_cost: string
-    timeline: Array<{
-      year: number
-      month: number
-      projected_balance: string
-      cumulative_paid: string
-    }>
-    verdict: 'safe' | 'moderate' | 'risky' | 'critical'
-    verdict_message: string
-  }
-}
-
-export interface Investment {
-  id: number
-  year: number
-  month: number
-  date: string
-  location: string
-  amount: string
-}
+export type BankKey =
+  | 'nubank' | 'inter' | 'itau' | 'bradesco' | 'santander' | 'bb' | 'caixa' | 'c6'
+  | 'xp' | 'btg' | 'picpay' | 'mercadopago' | 'neon' | 'pan' | 'other'
 
 export interface Card {
   id: number
   name: string
   color: string
+  bank: BankKey
+  is_active: boolean
   closing_day: number
   due_day: number
   limit: string | null
-  functions: Array<'credit' | 'debit'>
-  active_functions: string
+  active_functions: Array<'credit' | 'debit'>
 }
 
-export interface CardInvoice {
-  id: number
-  card: number
-  year: number
-  month: number
-  amount: string
-  due_date: string
-  is_paid: boolean
-}
+export type CardInput = Partial<Card> & { functions?: Array<'credit' | 'debit'> }
 
 export interface InvoiceSummary {
   amount: string
@@ -210,6 +149,8 @@ export interface CardSummary {
   card_id: number
   name: string
   color: string
+  bank: BankKey
+  is_active: boolean
   closing_day: number
   due_day: number
   functions: Array<'credit' | 'debit'>
@@ -220,25 +161,6 @@ export interface CardSummary {
   invoice: InvoiceSummary
 }
 
-export interface Debt {
-  id: number
-  debt_type: string
-  creditor: string
-  payment_method: number | null
-  installment_current: number
-  installment_total: number
-  installment_amount: string
-  total_amount: string
-  start_date: string
-  is_settled: boolean
-  origin: 'manual' | 'card_purchase'
-  card_detail: {
-    id: number
-    name: string
-    color: string
-  } | null
-}
-
 export interface PaginatedResponse<T> {
   count: number
   next: string | null
@@ -247,11 +169,13 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ImportItem {
+  index: number
   date: string
   description: string
   amount: string
   category: string | null
-  status: 'created' | 'duplicate' | 'ignored'
+  category_id: number | null
+  status: 'created' | 'duplicate' | 'ignored' | 'refunded'
 }
 
 export interface ImportResult {
@@ -259,4 +183,28 @@ export interface ImportResult {
   skipped: number
   total: string
   items: ImportItem[]
+}
+
+export interface StatementImportLog {
+  id: number
+  card_id: number
+  card_name: string
+  card_bank: BankKey
+  kind: 'credit' | 'debit'
+  year: number | null
+  month: number | null
+  filename: string
+  created_count: number
+  skipped_count: number
+  total: string
+  created_at: string
+}
+
+export interface DeviceSession {
+  id: number
+  device_name: string
+  last_seen_at: string
+  created_at: string
+  revoked: boolean
+  is_current: boolean
 }

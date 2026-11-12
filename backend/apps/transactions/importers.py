@@ -6,10 +6,14 @@ Cada parser devolve linhas normalizadas: amount sempre positivo (Decimal) e
 
 import csv
 import datetime
+import io
 import re
 import unicodedata
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 from apps.common.exceptions import ValidationDomainError
 
@@ -25,7 +29,9 @@ class ParsedRow:
     installment_total: int | None = None
 
 
-_INSTALLMENT = re.compile(r"(?:parcela\s*)?(\d{1,2})\s*/\s*(\d{1,2})", re.IGNORECASE)
+_INSTALLMENT = re.compile(
+    r"(?:parcela\s*)?(\d{1,2})\s*(?:/|\bde\b)\s*(\d{1,2})", re.IGNORECASE
+)
 
 
 def decode(file_bytes: bytes) -> str:
@@ -216,6 +222,47 @@ def parse_ofx(text: str) -> list[ParsedRow]:
     return rows
 
 
+_PT_MONTHS = {
+    m: i
+    for i, m in enumerate("jan fev mar abr mai jun jul ago set out nov dez".split(), 1)
+}
+_INTER_PDF_LINE = re.compile(
+    r"^(\d{1,2}) de ([a-zç]{3})\.? (\d{4}) (.+?) - (\+ )?R\$ ([\d.]+,\d{2})$",
+    re.IGNORECASE,
+)
+
+
+def parse_inter_invoice_pdf(text: str) -> list[ParsedRow]:
+    rows = []
+    for line in text.splitlines():
+        m = _INTER_PDF_LINE.match(line.strip())
+        if not m or m.group(2).lower() not in _PT_MONTHS:
+            continue
+        day, mon, year, desc, plus, value = m.groups()
+        desc = desc.removesuffix(" -").strip()
+        date = datetime.date(int(year), _PT_MONTHS[mon.lower()], int(day))
+        cur, tot = _installment(desc)
+        rows.append(
+            _signed_row(
+                date,
+                desc,
+                parse_money(value),
+                not plus,
+                installment_current=cur,
+                installment_total=tot,
+            )
+        )
+    return rows
+
+
+def _pdf_text(file_bytes: bytes) -> str:
+    try:
+        reader = PdfReader(io.BytesIO(file_bytes))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    except (PdfReadError, ValueError, KeyError, TypeError):
+        raise ValidationDomainError({"file": ["PDF inválido ou corrompido."]})
+
+
 def detect_format(text: str, filename: str = "") -> str:
     head = _norm(text[:4000])
     if "<ofx" in head or "ofxheader" in head or filename.lower().endswith(".ofx"):
@@ -243,5 +290,11 @@ _PARSERS = {
 
 
 def parse_statement(file_bytes: bytes, filename: str = "") -> list[ParsedRow]:
+    if file_bytes.startswith(b"%PDF"):
+        rows = parse_inter_invoice_pdf(_pdf_text(file_bytes))
+        if not rows:
+            msg = "Nenhum lançamento encontrado no PDF."
+            raise ValidationDomainError({"file": [msg]})
+        return rows
     text = decode(file_bytes)
     return _PARSERS[detect_format(text, filename)](text)

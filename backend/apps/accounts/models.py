@@ -5,6 +5,7 @@ from django.db import models
 class User(AbstractUser):
     username = None  # type: ignore[assignment]
     email = models.EmailField(unique=True)
+    avatar = models.FileField(upload_to="avatars/", null=True, blank=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []  # type: ignore[misc]
 

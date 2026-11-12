@@ -12,6 +12,7 @@ dependencies = [
   "python-dateutil>=2.9",
   "django-cors-headers>=4.3",
   "mcp<2",
+  "pypdf>=7.0.1",
 ]
 
 [dependency-groups]
