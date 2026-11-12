@@ -1,12 +1,8 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import AppLayout from '@/components/layout/AppLayout'
+import AppShell from '@/components/shell/AppShell'
+import PageHeader from '@/components/shell/PageHeader'
 import Login from '@/pages/Login'
-import Dashboard from '@/pages/Dashboard'
-import Transactions from '@/pages/Transactions'
-import Import from '@/pages/Import'
-import Analytics from '@/pages/Analytics'
-import Settings from '@/pages/Settings'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -21,23 +17,29 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// TODO Tasks 11-16: replace with the real pages
+const Placeholder = ({ eyebrow, title }: { eyebrow: string; title: string }) => <PageHeader eyebrow={eyebrow} title={title} />
+const SettingsTab = () => <Placeholder eyebrow="Ajustes" title={useParams().tab ?? 'categories'} />
+const AccountTab = () => <Placeholder eyebrow="Conta" title={useParams().tab ?? 'profile'} />
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route
-        path="/"
         element={
           <RequireAuth>
-            <AppLayout />
+            <AppShell />
           </RequireAuth>
         }
       >
-        <Route index element={<Dashboard />} />
-        <Route path="transactions" element={<Transactions />} />
-        <Route path="import" element={<Import />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="/" element={<Placeholder eyebrow="Lançamentos" title="Lançamentos" />} />
+        <Route path="/import" element={<Placeholder eyebrow="Importar" title="Importar" />} />
+        <Route path="/overview" element={<Placeholder eyebrow="Visão" title="Visão" />} />
+        <Route path="/settings" element={<Navigate to="/settings/categories" replace />} />
+        <Route path="/settings/:tab" element={<SettingsTab />} />
+        <Route path="/account" element={<Navigate to="/account/profile" replace />} />
+        <Route path="/account/:tab" element={<AccountTab />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
