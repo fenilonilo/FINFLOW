@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 
 const BASE = '/api/v1'
 
-const mockUser = { id: 1, email: 'felipe@finflow.app', first_name: 'Felipe' }
+const mockUser = { id: 1, email: 'felipe@finflow.app', first_name: 'Felipe', avatar_url: null }
 
 const mockHealth = {
   avg_monthly_income: '8245.37',
@@ -422,20 +422,105 @@ export const handlers = [
   http.get(`${BASE}/auth/sessions/`, () =>
     HttpResponse.json([
       {
-        id: 'session-1',
-        device: 'Chrome no Windows — Felipe',
-        last_seen: new Date().toISOString(),
+        id: 1,
+        device_name: 'Chrome · Windows',
+        last_seen_at: new Date().toISOString(),
+        created_at: '2026-11-01T10:00:00Z',
+        revoked: false,
         is_current: true,
       },
       {
-        id: 'session-2',
-        device: 'Safari no iPhone',
-        last_seen: new Date(Date.now() - 86400000).toISOString(),
+        id: 2,
+        device_name: 'Safari · iOS',
+        last_seen_at: new Date(Date.now() - 86400000).toISOString(),
+        created_at: '2026-10-20T08:30:00Z',
+        revoked: false,
         is_current: false,
       },
     ])
   ),
   http.delete(`${BASE}/auth/sessions/:id/`, () => new HttpResponse(null, { status: 204 })),
+
+  // Account
+  http.patch(`${BASE}/auth/me/`, async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json({ ...mockUser, ...(body as object) })
+  }),
+  http.post(`${BASE}/auth/me/avatar/`, () =>
+    HttpResponse.json({ ...mockUser, avatar_url: '/media/avatars/mock.png' })
+  ),
+  http.delete(`${BASE}/auth/me/avatar/`, () => new HttpResponse(null, { status: 204 })),
+
+  // Cards summary / invoices
+  http.get(`${BASE}/cards/summary/`, () => {
+    const invoice = {
+      amount: '0.00',
+      snapshot_amount: null,
+      is_paid: false,
+      divergent: false,
+      cycle_start: '2026-10-04',
+      cycle_end: '2026-11-03',
+      due_date: '2026-11-10',
+    }
+    const base = { is_active: true, closing_day: 3, due_day: 10, open_cycle_spend: '0.00' }
+    return HttpResponse.json([
+      {
+        ...base, card_id: 1, name: 'Nubank', color: '#820AD1', bank: 'nubank',
+        functions: ['credit', 'debit'], limit: '5000.00', committed: '1234.56', committed_pct: '24.69',
+        open_cycle_spend: '300.00', invoice: { ...invoice, amount: '1234.56', snapshot_amount: '1234.56' },
+      },
+      {
+        ...base, card_id: 2, name: 'Inter', color: '#FF7A00', bank: 'inter',
+        functions: ['credit'], limit: null, committed: '800.00', committed_pct: null,
+        invoice: { ...invoice, amount: '800.00', is_paid: true },
+      },
+      {
+        ...base, card_id: 3, name: 'Itaú Débito', color: '#EC7000', bank: 'itau',
+        functions: ['debit'], limit: null, committed: '0.00', committed_pct: null, invoice,
+      },
+    ])
+  }),
+  http.post(`${BASE}/cards/:id/pay-invoice/`, async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body as object)
+  }),
+
+  // Imports
+  http.post(`${BASE}/imports/statement/`, () =>
+    HttpResponse.json(
+      {
+        created: 1,
+        skipped: 3,
+        total: '189.90',
+        items: [
+          { index: 0, date: '2026-11-02', description: 'Mercado Livre', amount: '189.90', category: 'Lazer', category_id: 3, status: 'created' },
+          { index: 1, date: '2026-11-03', description: 'Padaria Central', amount: '23.50', category: 'Alimentação', category_id: 2, status: 'duplicate' },
+          { index: 2, date: '2026-11-04', description: 'Estorno Loja X', amount: '59.90', category: null, category_id: null, status: 'refunded' },
+          { index: 3, date: '2026-11-05', description: 'Pagamento fatura', amount: '1000.00', category: null, category_id: null, status: 'ignored' },
+        ],
+      },
+      { status: 200 }
+    )
+  ),
+  http.get(`${BASE}/imports/`, () =>
+    HttpResponse.json([
+      {
+        id: 2, card_id: 1, card_name: 'Nubank', card_bank: 'nubank', kind: 'credit', year: 2026, month: 11,
+        filename: 'Nubank_2026-11-12.csv', created_count: 42, skipped_count: 3, total: '1234.56',
+        created_at: '2026-11-12T12:00:00Z',
+      },
+      {
+        id: 1, card_id: 2, card_name: 'Inter', card_bank: 'inter', kind: 'credit', year: 2026, month: 10,
+        filename: 'fatura-inter-2026-10.pdf', created_count: 18, skipped_count: 0, total: '800.00',
+        created_at: '2026-10-12T12:00:00Z',
+      },
+    ])
+  ),
+
+  // Generate variables
+  http.post(`${BASE}/months/:year/:month/generate-variables/`, () =>
+    HttpResponse.json({ created: 1, skipped: 0 })
+  ),
 
   // Analytics extras
   http.get(`${BASE}/analytics/heatmap/`, ({ request }) => {

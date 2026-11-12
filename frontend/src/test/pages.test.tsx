@@ -31,7 +31,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
-const mockUser = { id: 1, email: 'test@finflow.app', first_name: 'Test' }
+const mockUser = { id: 1, email: 'test@finflow.app', first_name: 'Test', avatar_url: null }
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({
@@ -44,6 +44,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
           isLoading: false,
           login: async () => {},
           logout: async () => {},
+          setUser: () => {},
         }}
       >
         <QueryClientProvider client={qc}>

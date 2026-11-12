@@ -61,3 +61,22 @@ export function useDeleteTransaction() {
     },
   })
 }
+
+// Segue `next` até o fim (a API pagina 50 por página).
+export function useMonthTransactions(year: number, month: number) {
+  return useQuery({
+    queryKey: ['transactions', year, month, 'all'],
+    queryFn: async () => {
+      const all: Transaction[] = []
+      let page = 1
+      for (;;) {
+        const { data } = await api.get<PaginatedResponse<Transaction>>('/transactions/', {
+          params: { year, month, page },
+        })
+        all.push(...data.results)
+        if (!data.next) return all
+        page += 1
+      }
+    },
+  })
+}

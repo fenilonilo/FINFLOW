@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { api, setAccessToken } from '@/api/client'
+import { getDeviceName } from '@/lib/device'
 import type { User } from '@/types/models'
 
 interface AuthContextValue {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  setUser: (user: User) => void
   logout: () => Promise<void>
 }
 
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await api.post<{ access: string; refresh: string }>('/auth/token/', {
       email,
       password,
+      device_name: getDeviceName(),
     })
     setAccessToken(data.access)
     localStorage.setItem('refresh_token', data.refresh)
@@ -57,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   )

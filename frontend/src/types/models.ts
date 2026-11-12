@@ -6,6 +6,7 @@ export interface User {
   id: number
   email: string
   first_name: string
+  avatar_url: string | null
 }
 
 export interface Category {
@@ -255,10 +256,12 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ImportItem {
+  index: number
   date: string
   description: string
   amount: string
   category: string | null
+  category_id: number | null
   status: 'created' | 'duplicate' | 'ignored' | 'refunded'
 }
 
@@ -267,4 +270,28 @@ export interface ImportResult {
   skipped: number
   total: string
   items: ImportItem[]
+}
+
+export interface StatementImportLog {
+  id: number
+  card_id: number
+  card_name: string
+  card_bank: BankKey
+  kind: 'credit' | 'debit'
+  year: number
+  month: number
+  filename: string
+  created_count: number
+  skipped_count: number
+  total: string
+  created_at: string
+}
+
+export interface DeviceSession {
+  id: number
+  device_name: string
+  last_seen_at: string
+  created_at: string
+  revoked: boolean
+  is_current: boolean
 }
