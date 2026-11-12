@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Substituir o frontend atual pelas 6 telas do protótipo aprovado (Login, Lançamentos, Importar, Visão, Ajustes, Conta) com dados reais da API, sem mudar o backend.
+**Goal:** Substituir o frontend atual pelas 6 telas do protótipo aprovado (Login, Lançamentos, Importar, Visão, Ajustes, Conta) com dados reais da API. O backend ganha só o que as telas pedem (Tasks 18–21: prévia e histórico de importação, perfil editável com foto, revogação real de sessão).
 
 **Architecture:** Fundação nova (tokens, shell, touro WebGL, cartão metálico, leque, flip, sheet) sobre o React Query + axios já existentes. Lógica de tela vai para funções puras em `src/lib/` testadas isoladamente. As páginas só compõem os componentes e chamam os hooks de `src/api/`. As páginas órfãs saem no fim.
 
@@ -19,8 +19,11 @@
 - Touro: linhas 1185–fim (com `touro-referencia.html`).
 
 **Dono:**
+- Tasks 18–21 (backend, executadas ANTES da Task 1): `agent-db` (models/migrações) + `agent-domain` (services) + `agent-api` (views/serializers), conforme a task.
 - Tasks 1–10: `agent-front-core`.
 - Tasks 11–17: `agent-front-pages`.
+
+**Ordem de execução:** 18, 19, 20, 21, 1, 2, …, 17.
 
 ## Global Constraints
 
@@ -28,6 +31,7 @@
   - Trafega e é somado como string decimal.
   - Somas e comparações usam `lib/money.ts` (centavos inteiros via `BigInt`), nunca `parseFloat` em conta.
   - Formatação só na borda (`formatMoney`).
+- **Backend:** TDD com pytest; views finas → services → repositories (único lugar com ORM); exceções de domínio em `apps/common/exceptions.py`; `docker compose exec backend uv run pytest --cov=apps --cov-fail-under=85 && docker compose exec backend uv run ruff check .` verde ao fim de cada task de back. Nada de `pip`/`requirements.txt`; sem dependência nova (nem Pillow: validar imagem por assinatura de bytes). Tabelas e campos novos são aditivos; registrar 1 linha em `DECISIONS.md` por mudança de schema/contrato.
 - **Types:** `src/types/api.ts` nunca é editado à mão. Tipos de UI vão para `src/types/models.ts`.
 - **Comandos:** rodar dentro do container, nunca no host com o container de pé.
   - Testes: `docker compose exec frontend npm test -- <arquivo>`.
@@ -60,10 +64,9 @@
 4. **Cartão sem limite (`limit null`) ou sem crédito:** fora do leque de Faturas, e sem barra de limite. Não pode aparecer NaN nem "null". Teste na Task 11.
 5. **Browser sem WebGL ou `localStorage` bloqueado:**
    - O app funciona: fundo só gradiente, cartão sem camada metálica.
-   - Histórico de importação vazio.
    - `device_name` gerado sem quebrar o login.
 
-   Testes nas Tasks 3, 6 e 12.
+   Testes nas Tasks 3 e 6.
 
 ---
 
@@ -115,7 +118,7 @@
 ### Task 3: Mapeadores de tela (lógica pura)
 
 **Files:**
-- Create: `frontend/src/lib/month.ts` + `month.test.ts`, `frontend/src/lib/overview.ts` + `overview.test.ts`, `frontend/src/lib/device.ts` + `device.test.ts`, `frontend/src/lib/importHistory.ts` + `importHistory.test.ts`
+- Create: `frontend/src/lib/month.ts` + `month.test.ts`, `frontend/src/lib/overview.ts` + `overview.test.ts`, `frontend/src/lib/device.ts` + `device.test.ts`
 
 **Interfaces:**
 - Consumes:
@@ -137,9 +140,6 @@
 - Produces (`device.ts`):
   - `deviceName(ua: string): string`: formato `"<Navegador> · <Sistema>"`. Navegadores: Chrome / Edge / Firefox / Safari / Navegador. Sistemas: Windows / macOS / Android / iOS / Linux. No máximo 80 caracteres.
   - `getDeviceName(): string`: lê e grava `localStorage['ff_device']` dentro de try/catch; se o storage falhar, devolve `deviceName(navigator.userAgent)`.
-- Produces (`importHistory.ts`):
-  - `type ImportLog = { card: string; year: number; month: number; items: number; total: string; at: string }`.
-  - `readImports(): ImportLog[]` e `pushImport(l: ImportLog): void`. Chave `ff_imports`, no máximo 12 entradas, a mais nova primeiro, try/catch em toda leitura e escrita.
 
 - [ ] **Step 1: Escrever os testes que falham** (valores exatos):
   ```ts
@@ -159,10 +159,9 @@
   expect(deviceName('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36')).toBe('Chrome · Windows')
   expect(deviceName('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1')).toBe('Safari · iOS')
   // getDeviceName com localStorage lançando: não lança e devolve string não vazia
-  // importHistory: 13 pushes → readImports().length === 12 e [0] é o último; storage lançando → readImports() === []
   ```
   O implementador escreve as fixtures com os números acima; os marcados `<...>` são calculados a partir da fixture escolhida e fixados no teste.
-- [ ] **Step 2: Rodar e ver falhar.** `docker compose exec frontend npm test -- src/lib/month.test.ts src/lib/overview.test.ts src/lib/device.test.ts src/lib/importHistory.test.ts`: FAIL.
+- [ ] **Step 2: Rodar e ver falhar.** `docker compose exec frontend npm test -- src/lib/month.test.ts src/lib/overview.test.ts src/lib/device.test.ts`: FAIL.
 - [ ] **Step 3: Implementar** as assinaturas.
 - [ ] **Step 4: Rodar e ver passar.** Mesmo comando: PASS.
 - [ ] **Step 5: Commit.** `feat: mapeadores puros das telas do redesign`
@@ -171,7 +170,8 @@
 
 **Files:**
 - Modify: `frontend/src/api/cards.ts`, `frontend/src/api/transactions.ts`, `frontend/src/api/months.ts`, `frontend/src/contexts/AuthContext.tsx`, `frontend/src/mocks/handlers.ts`, `frontend/src/types/models.ts`
-- Create: `frontend/src/api/imports.ts`, `frontend/src/api/catalog.ts` (categorias, formas de pagamento, recorrentes), `frontend/src/api/sessions.ts`, `frontend/src/api/api.test.tsx`
+- Create: `frontend/src/api/imports.ts`, `frontend/src/api/catalog.ts` (categorias, formas de pagamento, recorrentes), `frontend/src/api/sessions.ts`, `frontend/src/api/account.ts`, `frontend/src/api/api.test.tsx`
+- Regenerate: `frontend/src/types/api.ts` via `docker compose exec frontend npm run generate-types` (backend das Tasks 18–21 de pé) — nunca à mão.
 
 **Interfaces:**
 - Consumes: `api` (`api/client.ts`), `getDeviceName` (Task 3).
@@ -183,19 +183,24 @@
   - `useCards()` (existe), `useCreateCard` / `useUpdateCard` / `useToggleCardActive`: mesmos endpoints do `Cards.tsx`.
   - `useMonthSummaries(points: Array<{year:number;month:number}>)`: `useQueries` sobre `months/{y}/{m}/summary/`.
   - `useGenerateFixed(year, month)`: passa a tipar o retorno como `GenerateFixedResult`. `useGenerateVariables(year, month)` chama `POST months/{y}/{m}/generate-variables/` com `[{recurring_id, amount}]`.
-  - `useImportStatement()`: mutation `{ file: File; cardId: number; kind: 'credit'|'debit'; year; month }` → `ImportResult`, com o FormData igual ao do `Import.tsx` atual.
+  - `useImportStatement()`: mutation `{ file: File; cardId: number; kind: 'credit'|'debit'; year; month; dryRun?: boolean; categories?: Record<number, number | null> }` → `ImportResult`, com o FormData igual ao do `Import.tsx` atual mais `dry_run` e `categories` (string JSON `{ "<index>": category_id }`), contrato da Task 18. Só invalida `transactions`/`summary`/`imports` quando `dryRun` é falso.
+  - `useImports(): UseQueryResult<StatementImportLog[]>`: `GET imports/` (Task 19), chave `['imports']`.
+  - Em `account.ts`: `useUpdateMe()` (`PATCH auth/me/` com `{ first_name, email }`), `useUploadAvatar()` (`POST auth/me/avatar/` multipart `avatar`), `useDeleteAvatar()`; todos atualizam o usuário do `AuthContext`.
+  - `useRevokeSession()`: `DELETE auth/sessions/{id}/`, invalida `['sessions']`.
   - Em `catalog.ts`:
     - `useCategories`, `useCreate/UpdateCategory`, `useArchiveCategory`;
     - `usePaymentMethods`, `useCreate/Update/ArchivePaymentMethod`;
     - `useRecurring`, `useCreate/UpdateRecurring`, `usePauseRecurring`, `useDeleteRecurring`.
 
     Mesmos endpoints, chaves de query e invalidações do `Settings.tsx` / `RecurringExpenses.tsx` de hoje.
-  - `useSessions(): UseQueryResult<DeviceSession[]>`, com `DeviceSession = { id: number; device_name: string; last_seen_at: string; created_at: string; revoked: boolean }` adicionado em `models.ts` (formato do serializer do backend).
+  - `useSessions(): UseQueryResult<DeviceSession[]>`, com `DeviceSession = { id: number; device_name: string; last_seen_at: string; created_at: string; revoked: boolean; is_current: boolean }` adicionado em `models.ts` (formato do serializer do backend, Task 21).
+  - `User` em `models.ts` ganha `avatar_url: string | null` (Task 20).
   - `AuthContext.login` envia `{ email, password, device_name: getDeviceName() }`.
   - MSW: handlers novos para:
     - `GET cards/summary/`, com 3 cartões: um com crédito e limite, um com crédito e `limit:null`, um só débito;
     - `POST cards/:id/pay-invoice/`;
-    - `POST imports/statement/`, com itens nos 4 status;
+    - `POST imports/statement/`, com itens nos 4 status (cada item com `index` e `category_id`), respondendo igual com ou sem `dry_run`;
+    - `GET imports/` (2 registros), `PATCH auth/me/`, `POST/DELETE auth/me/avatar/`, `DELETE auth/sessions/:id/`;
     - `POST months/:y/:m/generate-variables/`.
 
     Ajustar `auth/sessions/` ao formato `DeviceSession`.
@@ -205,6 +210,7 @@
   test('useMonthTransactions follows pagination', async () => { /* handler: página 1 com 50 itens + next, página 2 com 7 */ await waitFor(() => expect(result.current.data).toHaveLength(57)) })
   test('login sends device_name', async () => { /* handler captura body */ expect(body.device_name).toMatch(/ · /) })
   test('usePayInvoice posts year/month/is_paid', async () => { expect(body).toEqual({ year: 2026, month: 11, is_paid: true }) })
+  test('useImportStatement sends dry_run and categories JSON', async () => { /* prévia: dry_run 'true'; confirm: dry_run 'false' e categories '{"0":3}' */ })
   ```
 - [ ] **Step 2: Rodar e ver falhar.** `docker compose exec frontend npm test -- src/api/api.test.tsx`: FAIL.
 - [ ] **Step 3: Implementar** hooks, login e handlers.
@@ -319,8 +325,8 @@
   - Sombra que estreita ao girar.
   - Ref imperativa `{ flipFront(): void }`.
 - Produces (`<ProfileCard/>`, 206×290, texto exato do protótipo):
-  - **Frente:** silhueta, `first_name`, "{Mês} · {Ano}" do período, câmera, "Conta pessoal", "● Sessão ativa", pílula "↻ Conta".
-  - **Verso:** avatar + nome + e-mail; Perfil ("nome, e-mail e foto") → `/account/profile`; Dispositivos ("{n} sessões") → `/account/devices`; Sair → `logout()`.
+  - **Frente:** silhueta (ou a foto `avatar_url`, se houver), `first_name`, "{Mês} · {Ano}" do período, câmera, "Conta pessoal", "● Sessão ativa", pílula "↻ Conta".
+  - **Verso:** avatar (foto se houver) + nome + e-mail; Perfil ("nome, e-mail e foto") → `/account/profile`; Dispositivos ("{n} sessões") → `/account/devices`; Sair → `logout()`.
   - Navegar vira o cartão de volta após 300 ms.
   - Borda verde quando a rota começa com `/account`.
 
@@ -429,26 +435,27 @@
 - Delete: `frontend/src/pages/Import.tsx` (substituído)
 
 **Interfaces:**
-- Consumes: `useCards`, `useImportStatement`, `useCategories`, `useUpdateTransaction`, `readImports`/`pushImport`, `Fan` (`big`), `MetalCard`, `usePeriod`.
+- Consumes: `useCards`, `useImportStatement`, `useImports`, `useCategories`, `Fan` (`big`), `MetalCard`, `usePeriod`.
 - **Layout:** grade `380px | 1fr`.
-- **Etapa 1:** leque dos cartões ativos, dica "Arraste o cartão para trocar" e histórico do `readImports()` com o rótulo "neste navegador". Vazio: "Nenhuma importação neste navegador".
+- **Etapa 1:** leque dos cartões ativos, dica "Arraste o cartão para trocar" e histórico de `useImports()` no formato do protótipo ("Nubank · outubro" | "41 itens · R$ 2.390,12"). Vazio: "Nenhuma importação ainda".
 - **Etapa 2:**
   - Fechamento e vencimento do cartão da frente.
   - Escolha crédito/débito, só se o cartão tiver as duas funções.
   - Mês da fatura (padrão: período), quando for crédito.
-  - Área de soltar para CSV ou PDF (ou clique), com "Arraste a fatura do {nome}". Soltar envia na hora.
-- **Etapa 3, relatório pós-importação** (largura total):
+  - Área de soltar para CSV ou PDF (ou clique), com "Arraste a fatura do {nome}". Soltar envia na hora como **prévia** (`dryRun: true`): nada é gravado.
+- **Etapa 3, "3 · Conferir"** (largura total), igual ao protótipo:
+  - Vazio: linhas fantasma + "A conferência aparece aqui assim que a fatura for lida."
   - Tabela Data | Descrição | Categoria | Valor com cabeçalho fixo e rolagem interna.
-  - Categoria sugerida como pílula "✦". Clicar troca a categoria, salvando com PATCH no lançamento criado, localizado por `useMonthTransactions` com a mesma data, descrição e valor.
-  - Duplicados riscados e esmaecidos; estornos e ignorados sinalizados.
-  - Resumo "N itens · R$ X · K duplicados" e o botão "Concluir", que limpa a etapa.
-  - No sucesso chama `pushImport`.
+  - Categoria sugerida como pílula "✦" (classe `ai`). Clicar abre a escolha de categoria e troca **só no estado local** (nada salvo ainda).
+  - Duplicados riscados e esmaecidos (classe `dup`); estornos e ignorados sinalizados.
+  - Resumo "N itens · R$ X · K duplicados" no cabeçalho; rodapé "✦ categorias sugeridas pela IA local · clique para trocar" + botão "Importar N lançamentos" (N = itens `created`).
+  - O botão reenvia o mesmo arquivo com `dryRun: false` e `categories` = mapa índice → categoria escolhida de todos os itens `created`; no sucesso, limpa a etapa e o histórico (`['imports']`) atualiza.
 
 - [ ] **Step 1: Escrever os testes que falham:**
-  - Soltar um arquivo envia FormData com `card_id` do cartão da frente e `kind`.
-  - O relatório mostra os 4 status, e o duplicado tem a classe `dup`.
-  - Depois da importação, o histórico mostra "Nubank · Nov 2026".
-  - Com `localStorage` lançando, a tela renderiza com o histórico vazio.
+  - Soltar um arquivo envia FormData com `card_id` do cartão da frente, `kind` e `dry_run=true`.
+  - A conferência mostra os 4 status, e o duplicado tem a classe `dup`.
+  - Trocar a categoria de um item e clicar "Importar N lançamentos" envia `dry_run=false` e `categories` com a categoria trocada.
+  - O histórico mostra as entradas de `GET imports/` ("Nubank · outubro").
 - [ ] **Step 2: Rodar e ver falhar.** `docker compose exec frontend npm test -- src/pages/Importar.test.tsx`: FAIL.
 - [ ] **Step 3: Implementar** seguindo `<section id="s-imp">`.
 - [ ] **Step 4: Rodar e ver passar.** Mesmo comando: PASS.
@@ -520,19 +527,19 @@
 - Create: `frontend/src/pages/Conta.tsx`, `frontend/src/pages/Conta.test.tsx`
 
 **Interfaces:**
-- Consumes: `Tabs` (Task 14), `useAuth`, `useSessions`, `getDeviceName`.
+- Consumes: `Tabs` (Task 14), `useAuth`, `useSessions`, `useRevokeSession`, `useUpdateMe`, `useUploadAvatar`.
 - **Header:** eyebrow "Configuração", título CONTA. Abas Perfil e Dispositivos ocupam o painel de 560px; a aba vem de `/account/:tab`.
-- **Perfil (só leitura):** círculo com silhueta e câmera; "Foto do perfil", "JPG ou PNG · até 2 MB"; botão "Enviar foto" desabilitado com "em breve"; Nome e E-mail em `readOnly`; Salvar desabilitado com "em breve".
+- **Perfil (editável):** círculo com silhueta (ou a foto) e câmera; "Foto do perfil", "JPG ou PNG · até 2 MB"; "Enviar foto" abre seletor (`accept="image/jpeg,image/png"`), recusa no cliente > 2 MB e envia com `useUploadAvatar`; Nome e E-mail com RHF + Zod; "Salvar" faz `PATCH auth/me/`; erros do envelope (`errors.email`) aparecem no campo.
 - **Dispositivos:**
   - Sessões não revogadas.
-  - A sessão com `device_name === getDeviceName()` mostra "este dispositivo · ativo agora" e a pílula "Ativo". As outras mostram "último acesso há N dias", a partir de `last_seen_at`.
-  - Sem botão "Encerrar".
+  - A sessão com `is_current` mostra "este dispositivo · ativo agora" e a pílula "Ativo". As outras mostram "último acesso há N dias" (ou "hoje"), a partir de `last_seen_at`, e o botão "Encerrar" (`useRevokeSession`).
   - Lista vazia: "Nenhuma sessão registrada".
 
 - [ ] **Step 1: Escrever os testes que falham:**
-  - `/account/devices` marca "Ativo" na sessão cujo nome bate com o `localStorage['ff_device']`.
-  - Não existe botão "Encerrar".
-  - Em Perfil, o input de e-mail tem `readOnly`.
+  - `/account/devices` marca "Ativo" na sessão `is_current` e não mostra "Encerrar" nela.
+  - "Encerrar" numa outra sessão faz `DELETE auth/sessions/{id}/`.
+  - Em Perfil, editar o nome e "Salvar" faz `PATCH auth/me/` com o nome novo.
+  - Arquivo > 2 MB não é enviado e mostra erro.
 - [ ] **Step 2: Rodar e ver falhar.** `docker compose exec frontend npm test -- src/pages/Conta.test.tsx`: FAIL.
 - [ ] **Step 3: Implementar** seguindo `<section id="s-conta">`.
 - [ ] **Step 4: Rodar e ver passar.** Mesmo comando: PASS.
@@ -569,7 +576,7 @@
 
 - [ ] **Step 1: Reescrever a fumaça** em `pages.test.tsx` com uma renderização por tela nova, via MSW, cada uma afirmando o título (LANÇAMENTOS, IMPORTAR, VISÃO, AJUSTES, CONTA, ENTRAR).
 - [ ] **Step 2: Remover os arquivos** listados. `grep -r "recharts\|BankCard\|CardSwap\|KpiCard" frontend/src` deve voltar vazio antes de remover a dependência.
-- [ ] **Step 3: DECISIONS.md:** 1 linha por item da §12 do spec (1–17).
+- [ ] **Step 3: DECISIONS.md:** 1 linha por item da §12 do spec (1–17), com os itens 13–16 na versão com backend.
 - [ ] **Step 4: Verificar.** `docker compose exec frontend npm test && docker compose exec frontend npm run build`: tudo verde.
 - [ ] **Step 5: Conferência visual.** `npm run dev` com `VITE_API_MOCK=true` e Playwright em 1900×970, tela a tela contra o protótipo:
   - colunas de Lançamentos terminando juntas;
@@ -578,3 +585,72 @@
   - touro posicionado;
   - console sem erros.
 - [ ] **Step 6: Commit.** `refactor: remove paginas antigas e registra decisoes do redesign`
+
+---
+
+## Backend (executar antes da Task 1)
+
+### Task 18: Prévia (dry-run) da importação com categorias escolhidas
+
+**Files:**
+- Modify: `backend/apps/transactions/services.py` (`StatementImportService.import_file`), `backend/apps/transactions/api/serializers.py` (`StatementImportSerializer`), `backend/apps/transactions/api/views.py` (`StatementImportView`)
+- Test: `backend/apps/transactions/tests/unit/test_statement_import.py` e o teste de API correspondente
+
+**Interfaces:**
+- Request multipart `POST /api/v1/imports/statement/` ganha campos opcionais:
+  - `dry_run` (bool, padrão `false`).
+  - `categories` (string JSON `{"<index>": <category_id|null>}`), índice = posição do item na resposta.
+- Resposta: cada item ganha `index: int` e `category_id: int | null` (além de `category`, o nome). Topo inalterado (`created`, `skipped`, `total`, `items`). Com `dry_run`, `created` e `total` contam o que SERIA criado. Status `201` no real, `200` no dry-run.
+- `dry_run=true`: roda a mesma lógica e desfaz tudo (nenhuma transação, categoria "Outros" ou fixo gerado persiste) — `transaction.atomic()` + `set_rollback(True)`, sem duplicar a lógica.
+- `categories` fornecido: o item `created` usa a categoria indicada (validar que pertence ao usuário → `ValidationDomainError` no campo `categories`); descrições com categoria fornecida NÃO vão para o LLM (`classify`), então o confirm não chama o LLM de novo quando o front manda todas.
+
+- [ ] **Step 1: Testes que falham:** dry-run não cria `Transaction` (count antes == depois) e devolve itens com `index`/`category_id`; dry-run não cria "Outros"; confirm com `categories={"0": cat.id}` grava a transação 0 com `cat`; `classify` não é chamado para descrição com categoria fornecida (mock); categoria de outro usuário → 400 com `errors.categories`; API: dry-run responde 200, real 201.
+- [ ] **Step 2: Rodar e ver falhar.**
+- [ ] **Step 3: Implementar.**
+- [ ] **Step 4: Gate:** `docker compose exec backend uv run pytest --cov=apps --cov-fail-under=85 && docker compose exec backend uv run ruff check .`
+- [ ] **Step 5: Commit.** `feat: previa da importacao de fatura com categorias escolhidas`
+
+### Task 19: Registro e histórico de importações
+
+**Files:**
+- Modify: `backend/apps/transactions/models.py` (novo model `StatementImport`), migração nova, `repositories.py`, `services.py`, `api/serializers.py`, `api/views.py`, `api/urls.py`, `backend/apps/common/factories.py` (factory), `DECISIONS.md` (1 linha)
+
+**Interfaces:**
+- `StatementImport(user FK, card FK (on_delete CASCADE), kind, year (null), month (null), filename (max 255), created_count, skipped_count, total Decimal(12,2), created_at auto_now_add)`, `db_table = "transactions_statementimport"`, ordenação `-created_at`.
+- Gravado pelo `import_file` real (não no dry-run), dentro do mesmo `atomic`.
+- `GET /api/v1/imports/` → as 12 mais recentes do usuário: `[{ id, card_id, card_name, card_bank, kind, year, month, filename, created_count, skipped_count, total, created_at }]` (`total` string decimal). Sem paginação.
+
+- [ ] **Step 1: Testes que falham:** import real cria 1 `StatementImport` com contagens/total certos; dry-run não cria; `GET imports/` devolve só os do usuário, no máximo 12, mais novo primeiro.
+- [ ] **Step 2–4:** falhar, implementar, gate (mesmo comando da Task 18) e `makemigrations --check` limpo.
+- [ ] **Step 5: Commit.** `feat: historico de importacoes de fatura`
+
+### Task 20: Perfil editável e foto
+
+**Files:**
+- Modify: `backend/apps/accounts/models.py` (`User.avatar = FileField(upload_to="avatars/", null=True, blank=True)`), migração, `api/serializers.py`, `api/views.py`, `api/urls.py`, `services.py`/`repositories.py`, `config/settings/base.py` (`MEDIA_URL="/media/"`, `MEDIA_ROOT=BASE_DIR/"media"`), `config/urls.py` (servir media em DEBUG), `frontend/vite.config.ts` (proxy `/media` igual ao `/api`, se houver proxy), `DECISIONS.md`
+
+**Interfaces:**
+- `UserSerializer`: `{ id, email, first_name, avatar_url: string | null }` — URL relativa `/media/...` (funciona atrás do proxy do Vite).
+- `PATCH /api/v1/auth/me/` com `first_name` e/ou `email`; e-mail único (case-insensitive) → 400 `errors.email`; devolve o `UserSerializer`.
+- `POST /api/v1/auth/me/avatar/` multipart `avatar`: só JPEG/PNG validados pela assinatura de bytes (`FF D8 FF` / `89 50 4E 47 0D 0A 1A 0A`), máx. 2 MB → 400 `errors.avatar`; troca apaga o arquivo antigo; devolve o `UserSerializer`. `DELETE` remove a foto (204).
+- `media/` já está no `.gitignore`.
+
+- [ ] **Step 1: Testes que falham:** PATCH nome; PATCH e-mail duplicado → 400 `errors.email`; upload PNG válido → `avatar_url` não nulo; GIF ou texto renomeado `.png` → 400; > 2 MB → 400; DELETE limpa; sem auth → 401. Testes usam `MEDIA_ROOT` temporário (fixture `settings` + `tmp_path`).
+- [ ] **Step 2–4:** falhar, implementar, gate.
+- [ ] **Step 5: Commit.** `feat: edicao de perfil e foto do usuario`
+
+### Task 21: Revogação real de sessão de dispositivo
+
+**Files:**
+- Modify: `backend/apps/accounts/api/views.py`, `api/serializers.py`, `api/urls.py`, novo `backend/apps/accounts/authentication.py`, `services.py`/`repositories.py`, `config/settings/base.py` (`DEFAULT_AUTHENTICATION_CLASSES` e `SIMPLE_JWT["TOKEN_REFRESH_SERIALIZER"]`), `DECISIONS.md`
+
+**Interfaces:**
+- Login: cada login cria uma `DeviceSession` nova (nome = `device_name` ou `"Dispositivo"`) e grava `sid = session.id` no refresh (o access herda a claim).
+- Autenticação: subclasse de `JWTAuthentication` — token com `sid` de sessão revogada ou inexistente → 401. Token sem `sid` (legado) continua válido. Atualiza `last_seen_at` no máximo 1×/min por sessão (evitar escrita por request).
+- Refresh: serializer de refresh que recusa (401) `sid` revogado; a rotação mantém `sid`.
+- `DELETE auth/sessions/{id}/`: revoga (inclusive a própria). `POST auth/logout/`: blacklist do refresh + revoga a sessão do `sid`.
+- `GET auth/sessions/`: não revogadas, mais recente primeiro, cada uma com `is_current: bool` (`id == request.auth["sid"]`).
+
+- [ ] **Step 1: Testes que falham:** login com `device_name` cria sessão e o access tem `sid`; dois logins → 2 sessões; revogar a sessão A → access de A em `auth/me/` dá 401 e refresh de A dá 401, enquanto B segue 200; `is_current` true só na sessão do token; logout revoga; token sem `sid` segue aceito; `last_seen_at` não é reescrito em duas requests no mesmo minuto.
+- [ ] **Step 2–4:** falhar, implementar, gate.
+- [ ] **Step 5: Commit.** `feat: revogacao real de sessao por dispositivo`

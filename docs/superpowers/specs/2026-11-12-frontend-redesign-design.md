@@ -206,7 +206,7 @@ Porta do `FlipCard` enviado pelo usuário (parâmetros na §6). Referência: IIF
 ## 9. Remoções no frontend
 Saem páginas, rotas, hooks de API, mocks e testes de: Dashboard, Analytics (viram Visão), Investments, Debts,
 Acquisitions, RecurringExpenses e Cards (vira aba de Ajustes). Componentes antigos substituídos
-(`BankCard`, `CardSwap`, `KpiCard`, `Topbar`, etc.) saem quando ficarem sem uso. Backend intacto.
+(`BankCard`, `CardSwap`, `KpiCard`, `Topbar`, etc.) saem quando ficarem sem uso. Backend recebe só o necessário para as telas (§12, 13–16).
 
 ## 10. Dados — de onde vem cada bloco
 
@@ -222,9 +222,9 @@ Acquisitions, RecurringExpenses e Cards (vira aba de Ajustes). Componentes antig
 | Ajustes | `categories`, `payment-methods`, `cards`, `recurring-expenses` (CRUD existentes) |
 | Conta | `auth/me` (GET), `auth/sessions` (lista/encerrar) |
 
-**Lacunas do backend:** resolvidas sem mexer no backend nesta versão (§12, itens 13–16). Ficam para uma
-fase seguinte, se o usuário quiser: prévia (dry-run) da importação, PATCH de perfil + avatar, revogação real de
-sessão (vincular ao refresh token + blacklist) e registro de importações.
+**Lacunas do backend:** fechadas no backend nesta versão, por decisão do usuário (2026-11-12, "pode alterar o
+back para que atenda a interface"): prévia (dry-run) da importação, PATCH de perfil + avatar, revogação real de
+sessão (sessão vinculada ao token via claim `sid`) e registro de importações (§12, itens 13–16).
 
 ## 11. Qualidade e testes
 - TDD com Vitest + Testing Library + MSW (handlers atualizados para todas as telas).
@@ -249,10 +249,12 @@ sessão (vincular ao refresh token + blacklist) e registro de importações.
 10. **Fatura paga** ganha controle em Faturas abertas e em Ajustes → Cartões (senão o limite usado fica errado).
 11. **Fixos vencidos e não pagos** continuam em Próximos vencimentos com etiqueta "vencido".
 12. **Movimentações** mantém busca, filtros extras e pago por linha (nenhuma função em uso se perde).
-13. **Importar:** etapa 3 = relatório pós-importação (sem dry-run no backend).
-14. **Perfil:** só leitura + "em breve" para foto/edição.
-15. **Dispositivos:** lista real (login envia `device_name`), sem "Encerrar" até a revogação ser real.
-16. **Histórico de importações** em `localStorage`.
+13. **Importar:** etapa 3 = "Conferir" de verdade: o backend faz prévia (`dry_run`), o usuário troca categorias
+    sem salvar e só "Importar N lançamentos" grava (reenvia o arquivo com as categorias escolhidas).
+14. **Perfil:** editável (nome, e-mail) via `PATCH auth/me/`; foto JPG/PNG até 2 MB via `auth/me/avatar/`.
+15. **Dispositivos:** lista real (login envia `device_name`, cada login cria uma sessão), sessão atual marcada
+    pelo backend (`is_current`), "Encerrar" revoga de verdade (tokens daquela sessão param de valer).
+16. **Histórico de importações** registrado no backend (`GET imports/`).
 17. **Celular:** foco desktop. Abaixo de 1100px as grades viram uma coluna; sem navegação mobile própria
     nem ajuste do touro nesta versão.
 
