@@ -202,7 +202,8 @@ def test_dry_run_persists_nothing_and_returns_index_and_category_id(monkeypatch)
     assert result["created"] == 2
     assert result["total"] == "30.00"
     assert [i["index"] for i in result["items"]] == [0, 1]
-    assert all(i["category_id"] is not None for i in result["items"])
+    assert all(i["category"] == "Outros" for i in result["items"])
+    assert all(i["category_id"] is None for i in result["items"])
 
 
 def test_confirm_uses_chosen_category_and_skips_llm_for_it(monkeypatch):
@@ -228,16 +229,17 @@ def test_confirm_uses_chosen_category_and_skips_llm_for_it(monkeypatch):
     assert sent == [["LOJA B"]]
 
 
-def test_confirm_null_category_means_no_category(monkeypatch):
+def test_confirm_null_category_means_fallback_outros_without_llm(monkeypatch):
     from apps.transactions.models import Transaction
 
-    user, card, _ = _setup_two_rows(monkeypatch)
+    user, card, sent = _setup_two_rows(monkeypatch)
 
     StatementImportService().import_file(
         user.id, b"", "f.csv", card.id, "credit", 2025, 3, categories={1: None}
     )
 
-    assert Transaction.objects.get(description="LOJA B").category_id is None
+    assert Transaction.objects.get(description="LOJA B").category.name == "Outros"
+    assert sent == [["LOJA A"]]
 
 
 def test_confirm_with_other_users_category_raises(monkeypatch):
@@ -258,3 +260,26 @@ def test_confirm_with_other_users_category_raises(monkeypatch):
             categories={0: foreign.id},
         )
     assert "categories" in exc.value.errors
+
+
+def test_preview_then_confirm_roundtrip_creates_outros_once(monkeypatch):
+    from apps.core.models import Category
+    from apps.transactions.models import Transaction
+
+    user, card, _ = _setup_two_rows(monkeypatch)
+    svc = StatementImportService()
+    args = (user.id, b"", "f.csv", card.id, "credit", 2025, 3)
+
+    preview = svc.import_file(*args, dry_run=True)
+    sent_map = {
+        i["index"]: i["category_id"]
+        for i in preview["items"]
+        if i["status"] == "created"
+    }
+    result = svc.import_file(*args, categories=sent_map)
+
+    assert result["created"] == 2
+    assert Category.objects.filter(user=user, name="Outros").count() == 1
+    assert {t.category.name for t in Transaction.objects.filter(user=user)} == {
+        "Outros"
+    }

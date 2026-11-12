@@ -66,3 +66,11 @@ def test_malformed_categories_returns_400(env):
     resp = _post(api, card, categories="{nope")
     assert resp.status_code == 400
     assert "categories" in resp.data
+
+
+def test_non_integer_category_value_returns_400(env):
+    api, _, card = env
+    for bad in ('{"0": 1.5}', '{"0": true}', '{"0": "x"}'):
+        resp = _post(api, card, categories=bad)
+        assert resp.status_code == 400
+        assert "categories" in resp.data

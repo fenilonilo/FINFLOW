@@ -148,7 +148,13 @@ class StatementImportSerializer(serializers.Serializer):
     def validate_categories(self, value: str) -> dict[int, int | None]:
         try:
             raw = json.loads(value)
-            return {int(k): (None if v is None else int(v)) for k, v in raw.items()}
+            out = {int(k): v for k, v in raw.items()}
+            if any(
+                v is not None and (isinstance(v, bool) or not isinstance(v, int))
+                for v in out.values()
+            ):
+                raise ValueError
+            return out
         except (ValueError, TypeError, AttributeError):
             raise serializers.ValidationError(
                 "Use um JSON {indice: id_categoria|null}."

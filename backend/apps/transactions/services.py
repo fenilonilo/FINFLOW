@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import re
 from decimal import ROUND_FLOOR, Decimal
+from types import SimpleNamespace
 from typing import Any
 
 from django.db import transaction as db_transaction
@@ -540,7 +541,6 @@ class StatementImportService:
         card = CardRepository.get_by_id(card_id, user_id)
         if not card.is_active:
             raise ValidationDomainError({"card": ["Cartão inativo."]})
-        pm = CardPaymentMethodRepository.get_or_create_function(card, kind)
         rows = parse_statement(file_bytes, filename)
         user_cats = CategoryRepository.list_by_user(user_id)
         by_id = {c.id: c for c in user_cats}
@@ -577,6 +577,7 @@ class StatementImportService:
         total = Decimal("0")
 
         with db_transaction.atomic():
+            pm = CardPaymentMethodRepository.get_or_create_function(card, kind)
             for idx, (row, key) in enumerate(zip(rows, keys, strict=True)):
                 comp = (
                     (year, month)
@@ -609,12 +610,15 @@ class StatementImportService:
                 ):
                     item["status"] = "duplicate"
                 else:
-                    if idx in chosen:
-                        category = by_id.get(chosen[idx]) if chosen[idx] else None
+                    if chosen.get(idx) is not None:
+                        category = by_id[chosen[idx]]
                     elif tx_type == TransactionType.INCOME:
                         category = None
                     else:
-                        category = self._category_for(row, categories, user_id, llm)
+                        # null em `categories` = fallback "Outros", sem LLM
+                        category = self._category_for(
+                            row, categories, user_id, llm, idx in chosen, dry_run
+                        )
                     item["category"] = category.name if category else None
                     item["category_id"] = category.id if category else None
                     self._tx.create(
@@ -708,12 +712,18 @@ class StatementImportService:
         categories: dict[str, Any],
         user_id: int,
         llm: dict[str, str | None],
+        fallback_only: bool = False,
+        dry_run: bool = False,
     ) -> Any:
-        wanted = _keyword_category(row.description) or llm.get(row.description)
-        if wanted is None and row.bank_category:
-            wanted = row.bank_category
+        wanted = None
+        if not fallback_only:
+            wanted = _keyword_category(row.description) or llm.get(row.description)
+            if wanted is None and row.bank_category:
+                wanted = row.bank_category
         cat = categories.get((wanted or "").lower()) or categories.get("outros")
         if cat is None:
+            if dry_run:  # prévia nunca materializa "Outros"
+                return SimpleNamespace(id=None, name="Outros")
             cat = CategoryRepository.create_named(user_id, "Outros")
             categories["outros"] = cat
         return cat
