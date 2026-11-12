@@ -4,17 +4,6 @@ const BASE = '/api/v1'
 
 const mockUser = { id: 1, email: 'felipe@finflow.app', first_name: 'Felipe', avatar_url: null }
 
-const mockHealth = {
-  avg_monthly_income: '8245.37',
-  avg_monthly_expense: '3490.58',
-  avg_monthly_invested: '2697.31',
-  avg_balance: '2057.48',
-  fixed_commitment_pct: '42.33',
-  savings_rate_pct: '32.71',
-  score: 78,
-  score_label: 'Saudável',
-}
-
 const mockSummary = {
   year: 2025,
   month: 1,
@@ -214,30 +203,6 @@ export const handlers = [
     })
   ),
 
-  // Investments
-  http.get(`${BASE}/investments/`, () =>
-    HttpResponse.json({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [
-        {
-          id: 1,
-          year: 2025,
-          month: 1,
-          date: '2025-01-15',
-          location: 'Tesouro Direto',
-          amount: '5000.00',
-        },
-      ],
-    })
-  ),
-  http.post(`${BASE}/investments/`, async ({ request }) => {
-    const body = await request.json()
-    return HttpResponse.json({ id: 99, ...(body as object) }, { status: 201 })
-  }),
-  http.delete(`${BASE}/investments/:id/`, () => new HttpResponse(null, { status: 204 })),
-
   // Cards
   http.get(`${BASE}/cards/`, () =>
     HttpResponse.json({
@@ -268,106 +233,6 @@ export const handlers = [
     })
   ),
 
-  // Debts
-  http.get(`${BASE}/debts/`, () =>
-    HttpResponse.json({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [
-        {
-          id: 1,
-          debt_type: 'financing',
-          creditor: 'Banco do Brasil',
-          payment_method: 1,
-          installment_current: 6,
-          installment_total: 24,
-          installment_amount: '422.49',
-          total_amount: '10000.00',
-          start_date: '2024-07-01',
-          is_settled: false,
-        },
-      ],
-    })
-  ),
-
-  // Analytics
-  http.get(`${BASE}/analytics/health-score/`, () => HttpResponse.json(mockHealth)),
-  http.get(`${BASE}/analytics/yearly/`, ({ request }) => {
-    const url = new URL(request.url)
-    const year = Number(url.searchParams.get('year') ?? 2025)
-    return HttpResponse.json({
-      year,
-      months: Array.from({ length: 12 }, (_, i) => ({
-        month: i + 1,
-        total_income: '8000.00',
-        total_expense: '3500.00',
-        total_invested: '2000.00',
-        balance: '2500.00',
-      })),
-    })
-  }),
-
-  // Acquisitions
-  http.get(`${BASE}/acquisitions/`, () =>
-    HttpResponse.json({
-      count: 0,
-      next: null,
-      previous: null,
-      results: [],
-    })
-  ),
-  http.post(`${BASE}/acquisitions/`, async ({ request }) => {
-    const body = await request.json()
-    return HttpResponse.json({ id: 1, ...(body as object) }, { status: 201 })
-  }),
-  http.delete(`${BASE}/acquisitions/:id/`, () => new HttpResponse(null, { status: 204 })),
-  http.post(`${BASE}/acquisitions/simulate/`, () =>
-    HttpResponse.json({
-      input: { name: 'Notebook Dell', total_value: '10000.00' },
-      financed_amount: '8000.00',
-      monthly_payment_first: '422.49',
-      monthly_payment_last: '422.49',
-      total_paid: '12139.76',
-      total_interest: '2139.76',
-      effective_cost_pct: '26.75',
-      schedule: [
-        {
-          number: 1,
-          due_date: '2026-07-01',
-          amount: '422.49',
-          interest_portion: '159.20',
-          principal_portion: '263.29',
-          remaining_balance: '7736.71',
-        },
-        {
-          number: 2,
-          due_date: '2026-08-01',
-          amount: '422.49',
-          interest_portion: '142.30',
-          principal_portion: '280.19',
-          remaining_balance: '7456.52',
-        },
-      ],
-      impact: {
-        baseline: mockHealth,
-        projected: { ...mockHealth, score: 69, score_label: 'Saudável' },
-        monthly_income_impact_pct: '5.12',
-        balance_reduction_pct: '20.53',
-        score_delta: -9,
-        months_negative_balance: 0,
-        opportunity_cost: '1893.40',
-        timeline: [
-          { year: 2026, month: 7, projected_balance: '1634.99', cumulative_paid: '422.49' },
-          { year: 2026, month: 8, projected_balance: '1212.50', cumulative_paid: '844.98' },
-          { year: 2026, month: 9, projected_balance: '789.99', cumulative_paid: '1267.47' },
-        ],
-        verdict: 'moderate',
-        verdict_message: 'Compromete 5,1% da sua renda média por 24 meses.',
-      },
-    })
-  ),
-
   // Recurring expenses CRUD
   http.post(`${BASE}/recurring-expenses/`, async ({ request }) => {
     const body = await request.json()
@@ -392,11 +257,6 @@ export const handlers = [
     const body = await request.json()
     return HttpResponse.json({ id: Number(params.id), ...(body as object) })
   }),
-
-  // Debts
-  http.post(`${BASE}/debts/:id/advance/`, ({ params }) =>
-    HttpResponse.json({ id: Number(params.id), installment_current: 7 })
-  ),
 
   // Categories CRUD
   http.post(`${BASE}/categories/`, async ({ request }) => {
@@ -520,52 +380,5 @@ export const handlers = [
   // Generate variables
   http.post(`${BASE}/months/:year/:month/generate-variables/`, () =>
     HttpResponse.json({ created: 1, skipped: 0 })
-  ),
-
-  // Analytics extras
-  http.get(`${BASE}/analytics/heatmap/`, ({ request }) => {
-    const url = new URL(request.url)
-    const year = Number(url.searchParams.get('year') ?? new Date().getFullYear())
-    // generate sparse heatmap data
-    const entries = []
-    for (let d = 1; d <= 365; d += 7) {
-      const date = new Date(year, 0, d)
-      if (date.getFullYear() !== year) break
-      entries.push({
-        date: date.toISOString().slice(0, 10),
-        total: (Math.random() * 500).toFixed(2),
-      })
-    }
-    return HttpResponse.json(entries)
-  }),
-  http.get(`${BASE}/analytics/category-trends/`, () =>
-    HttpResponse.json([
-      {
-        category_name: 'Saúde',
-        color: '#ef4444',
-        months: [
-          { month: 1, year: 2025, total: '474.09' },
-          { month: 2, year: 2025, total: '420.00' },
-          { month: 3, year: 2025, total: '510.00' },
-        ],
-      },
-      {
-        category_name: 'Alimentação',
-        color: '#fb923c',
-        months: [
-          { month: 1, year: 2025, total: '850.00' },
-          { month: 2, year: 2025, total: '780.00' },
-          { month: 3, year: 2025, total: '900.00' },
-        ],
-      },
-    ])
-  ),
-  http.get(`${BASE}/analytics/top-categories/`, () =>
-    HttpResponse.json([
-      { category_name: 'Alimentação', color: '#fb923c', total: '2800.00' },
-      { category_name: 'Saúde', color: '#ef4444', total: '1900.00' },
-      { category_name: 'Lazer', color: '#818cf8', total: '1200.00' },
-      { category_name: 'Transporte', color: '#60a5fa', total: '950.00' },
-    ])
   ),
 ]

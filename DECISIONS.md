@@ -40,3 +40,16 @@
 | Import | Model StatementImport (historico de importacoes reais) e GET /imports/ (12 mais recentes do usuario) | Tela Importar exibe historico; gravado no mesmo atomic, fora do dry-run |
 | Conta | User.avatar (FileField, media/avatars/), PATCH /auth/me/ e POST/DELETE /auth/me/avatar/; avatar_url relativo; so JPEG/PNG por assinatura, max 2 MB; /media servido por Django em DEBUG | Tela Conta → Perfil; URL relativa funciona atras do proxy do Vite |
 | Conta | JWT carrega claim `sid` (DeviceSession.id); login sempre cria sessao nova ("Dispositivo" por padrao); auth/refresh recusam `sid` revogado (401), token sem `sid` segue valido; DELETE auth/sessions/{id}/ e logout revogam de verdade; last_seen_at atualizado no max. 1x/min; DeviceSession ganha `is_current` | Tela Conta → Dispositivos marca a sessao atual e encerra as outras de fato |
+| Redesign | Sem `motion`: leque e flip usam integrador de mola próprio (`lib/spring.ts`); única dependência nova de animação é `three` (touro) | Integrador do protótipo já verificado (~20 linhas); evita lib extra |
+| Redesign | Gráfico da Visão em SVG próprio; `recharts` removido | Protótipo usa SVG; recharts ficou sem uso |
+| Redesign | Projeção do próximo mês: fixos = soma dos fixos ativos; variáveis = mesmo mês do ano anterior, senão média dos últimos 6 meses | Estimativa simples sem modelo estatístico |
+| Redesign | Linha de receita tracejada por mês (degrau), não uma linha única | Receita muda por mês; degrau não sugere interpolação |
+| Redesign | Fontes auto-hospedadas via `@fontsource` | Sem dependência do Google Fonts em runtime |
+| Redesign | Rotas: `/` Lançamentos, `/import`, `/overview`, `/settings/:tab`, `/account/:tab`, `/login`; rotas antigas removidas (qualquer outra vai para `/`) | Cinco abas do protótipo; páginas legadas apagadas |
+| Redesign | Botão "Esconder interface" do protótipo não entra no produto | Era só recurso de demonstração |
+| Redesign | Chips de fixos alternam pago com um clique; linha de movimentação abre edição no sheet | Fluxo do protótipo |
+| Redesign | Mês/ano do cartão de perfil e das telas seguem o mês selecionado (`PeriodContext`) | Fonte única do período |
+| Redesign | Fatura paga ganha controle em Faturas abertas e em Ajustes → Cartões | Sem isso o limite usado fica errado |
+| Redesign | Fixos vencidos e não pagos continuam em Próximos vencimentos com etiqueta "vencido" | Não esconder pendência atrasada |
+| Redesign | Movimentações mantém busca, filtros extras e pago por linha | Nenhuma função em uso se perde |
+| Redesign | Celular fora de escopo: abaixo de 1100px as grades viram uma coluna, sem navegação mobile nem ajuste do touro | Foco desktop nesta versão |

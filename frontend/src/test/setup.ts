@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom'
 
-// jsdom não implementa estes observers (recharts, CardSwap)
+// jsdom não implementa estes observers
 class NoopObserver {
   observe() {}
   unobserve() {}
