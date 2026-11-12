@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import { setupServer } from 'msw/node'
-import { http, HttpResponse } from 'msw'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PeriodProvider } from '@/contexts/PeriodContext'
+import { http, HttpResponse } from 'msw'
 import { handlers } from '@/mocks/handlers'
 import { api } from '@/api/client'
 import Importar from './Importar'
@@ -17,7 +17,6 @@ afterEach(() => {
 })
 afterAll(() => server.close())
 
-const CARD = { id: 1, name: 'Nubank', color: '#820AD1', bank: 'nubank', is_active: true, closing_day: 5, due_day: 12, limit: null, functions: ['credit', 'debit'], active_functions: 'credit,debit' }
 const RESULT = {
   created: 1,
   skipped: 3,
@@ -31,7 +30,6 @@ const RESULT = {
 }
 
 function setup() {
-  server.use(http.get(`${B}/cards/`, () => HttpResponse.json({ count: 1, next: null, previous: null, results: [CARD] })))
   const forms: FormData[] = []
   vi.spyOn(api, 'post').mockImplementation(async (_u, data) => {
     forms.push(data as FormData)
@@ -47,6 +45,11 @@ function setup() {
   )
   return forms
 }
+const twoCards = () =>
+  server.use(http.get(`${B}/cards/`, () => HttpResponse.json({ count: 2, next: null, previous: null, results: [
+    { id: 1, name: 'Nubank', color: '#820AD1', bank: 'nubank', is_active: true, closing_day: 3, due_day: 10, limit: null, active_functions: ['credit'] },
+    { id: 2, name: 'Inter', color: '#FF7A00', bank: 'inter', is_active: true, closing_day: 3, due_day: 10, limit: null, active_functions: ['credit'] },
+  ] })))
 
 const drop = async () => {
   const zone = await screen.findByText(/Arraste a fatura do Nubank/)
@@ -93,6 +96,26 @@ describe('Importar', () => {
     await waitFor(() => expect(forms).toHaveLength(2))
     expect(forms[1].get('dry_run')).toBe('false')
     expect(JSON.parse(forms[1].get('categories') as string)).toEqual({ 0: Number((opt as HTMLOptionElement).value) })
+    await waitFor(() => expect(screen.getByText(/A conferência aparece aqui/)).toBeInTheDocument())
+  })
+
+  it('upload que falha depois de uma prévia volta ao estado vazio', async () => {
+    const forms = setup()
+    await drop()
+    await screen.findByText('Mercado Livre')
+    vi.mocked(api.post).mockRejectedValueOnce(new Error('boom'))
+    await drop()
+    await waitFor(() => expect(screen.getByText(/A conferência aparece aqui/)).toBeInTheDocument())
+    expect(screen.queryByText('Mercado Livre')).not.toBeInTheDocument()
+    expect(forms).toHaveLength(1)
+  })
+
+  it('trocar o cartão limpa a conferência', async () => {
+    twoCards()
+    setup()
+    await drop()
+    await screen.findByText('Mercado Livre')
+    fireEvent.keyDown(screen.getByRole('group', { name: 'Cartões' }), { key: 'Enter' })
     await waitFor(() => expect(screen.getByText(/A conferência aparece aqui/)).toBeInTheDocument())
   })
 })

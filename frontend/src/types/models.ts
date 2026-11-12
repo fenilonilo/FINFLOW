@@ -189,8 +189,7 @@ export interface Card {
   closing_day: number
   due_day: number
   limit: string | null
-  functions: Array<'credit' | 'debit'>
-  active_functions: string
+  active_functions: Array<'credit' | 'debit'>
 }
 
 export interface CardInvoice {

@@ -31,8 +31,10 @@ export default function Importar() {
   const [editing, setEditing] = useState<number | null>(null)
 
   const card = cards[top] ?? cards[0]
-  const kind = card?.functions.includes(kindSel) ? kindSel : card?.functions[0] ?? 'credit'
+  const kind = card?.active_functions.includes(kindSel) ? kindSel : card?.active_functions[0] ?? 'credit'
+  const token = useRef(0) // ponytail: ignora respostas de prévia de uma seleção anterior
   const reset = () => {
+    token.current++
     setFile(null)
     setPreview(null)
     setChosen({})
@@ -42,11 +44,14 @@ export default function Importar() {
 
   function send(f: File) {
     if (!card) return
+    reset()
+    const t = token.current
     setFile(f)
     mutation.mutate(
       { ...params(f), dryRun: true },
       {
         onSuccess: (r) => {
+          if (t !== token.current) return
           setPreview(r)
           setChosen(Object.fromEntries(r.items.filter((i) => i.status === 'created').map((i) => [i.index, i.category_id])))
         },
@@ -57,10 +62,12 @@ export default function Importar() {
 
   function confirm() {
     if (!file) return
+    const t = token.current
     mutation.mutate(
       { ...params(file), dryRun: false, categories: chosen },
       {
         onSuccess: (r) => {
+          if (t !== token.current) return
           toast(`${r.created} lançamentos importados para ${card.name}`, 'success')
           reset()
         },
@@ -75,6 +82,7 @@ export default function Importar() {
     if (f) send(f)
   }
 
+  const busy = mutation.isPending
   const items = preview?.items ?? []
   const created = items.filter((i) => i.status === 'created')
   const dups = items.filter((i) => i.status === 'duplicate').length
@@ -82,7 +90,7 @@ export default function Importar() {
 
   return (
     <div>
-      <PageHeader eyebrow="Fatura de cartão" title="IMPORTAR" />
+      <PageHeader eyebrow="Fatura de cartão" title="Importar" />
       <div className="imp">
         <div className="glass rise">
           <div className="eyebrow plain">1 · Escolha o cartão</div>
@@ -117,7 +125,7 @@ export default function Importar() {
           )}
           {card && (
             <div className="imp-opts">
-              {card.functions.length > 1 && (
+              {card.active_functions.length > 1 && (
                 <select aria-label="Tipo" value={kind} onChange={(e) => { setKindSel(e.target.value as 'credit' | 'debit'); reset() }}>
                   <option value="credit">Crédito</option>
                   <option value="debit">Débito</option>
@@ -140,13 +148,19 @@ export default function Importar() {
             className="drop"
             role="button"
             tabIndex={0}
-            onClick={() => input.current?.click()}
-            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}
+            aria-disabled={busy || !card}
+            onClick={() => !busy && card && input.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              if (!busy && card) input.current?.click()
+            }}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={onDrop}
+            onDrop={(e) => (busy ? e.preventDefault() : onDrop(e))}
+            style={busy ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
           >
             <div className="ic">↓</div>
-            <b>Arraste a fatura do {card?.name}</b>
+            <b>{card ? `Arraste a fatura do ${card.name}` : 'Nenhum cartão ativo'}</b>
             <span className="muted" style={{ fontSize: 13 }}>CSV ou PDF · ou clique para escolher</span>
             <input
               ref={input}
@@ -168,7 +182,7 @@ export default function Importar() {
             <div className="eyebrow plain">3 · Conferir</div>
             {preview && (
               <span className="muted" style={{ fontSize: 13 }}>
-                {items.length} itens · {formatMoney(sumMoney(created.map((i) => i.amount)))} · {dups} duplicados
+                <span className="num" style={{ color: 'var(--tx)' }}>{items.length}</span> itens · <span className="num" style={{ color: 'var(--tx)' }}>{formatMoney(sumMoney(created.map((i) => i.amount)))}</span> · <span className="num" style={{ color: 'var(--tx)' }}>{dups}</span> duplicados
               </span>
             )}
           </div>
@@ -213,7 +227,7 @@ export default function Importar() {
                             <button type="button" className="ai" onClick={() => setEditing(i.index)}>{catName(chosen[i.index], i.category)}</button>
                           )}
                         </td>
-                        <td>{formatMoney(i.amount)}</td>
+                        <td>{formatMoney(i.amount).replace('R$', '').trim()}</td>
                       </tr>
                     ))}
                   </tbody>
