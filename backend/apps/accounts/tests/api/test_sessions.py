@@ -145,3 +145,13 @@ def test_revoking_own_session_invalidates_same_access(user):
     c = as_token(t["access"])
     assert c.delete(f"/api/v1/auth/sessions/{sid}/").status_code == 204
     assert c.get("/api/v1/auth/me/").status_code == 401
+
+
+@pytest.mark.parametrize("refresh", [None, ""])
+def test_logout_accepts_null_or_blank_refresh(user, refresh):
+    t = login(user, "A")
+    resp = as_token(t["access"]).post(
+        "/api/v1/auth/logout/", {"refresh": refresh}, format="json"
+    )
+    assert resp.status_code == 205
+    assert DeviceSession.objects.get().revoked is True

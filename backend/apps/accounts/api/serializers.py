@@ -70,7 +70,7 @@ class TokenPairSerializer(serializers.Serializer):
 
 
 class LogoutSerializer(serializers.Serializer):
-    refresh = serializers.CharField(required=False)
+    refresh = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class LoginSerializer(serializers.Serializer):
