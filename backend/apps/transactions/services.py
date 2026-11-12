@@ -21,6 +21,7 @@ from apps.core.repositories import (  # noqa: F401
     PaymentMethodRepository,
 )
 from apps.investments.repositories import InvestmentRepository
+from apps.transactions.classifier import classify
 from apps.transactions.importers import ParsedRow, parse_statement
 from apps.transactions.models import (
     DebtOrigin,
@@ -179,11 +180,17 @@ class RecurringExpenseService:
                 tx.amount = total
                 tx.save(update_fields=["amount", "updated_at"])
 
-    def propagate_amount(self, tx: Transaction, amount: Decimal) -> None:
+    def propagate(self, tx: Transaction, fields: dict[str, Any]) -> None:
+        """R2: amount/description/category_id do fixo vão ao template e às
+        transações posteriores não pagas."""
         template = self._recurring.get_by_id(tx.recurring_source_id, tx.user_id)
-        template.default_amount = amount
-        template.save(update_fields=["default_amount", "updated_at"])
-        self._tx.update_later_unpaid_amount(tx, amount)
+        template_fields = {
+            ("default_amount" if k == "amount" else k): v for k, v in fields.items()
+        }
+        for k, v in template_fields.items():
+            setattr(template, k, v)
+        template.save(update_fields=[*template_fields, "updated_at"])
+        self._tx.update_later_unpaid(tx, fields)
 
     def generate_variables(
         self,
@@ -411,9 +418,14 @@ class TransactionService:
             )
         with db_transaction.atomic():
             tx.save()
-            if "amount" in data and tx.recurring_source_id is not None:
-                RecurringExpenseService(transaction_repo=self._tx).propagate_amount(
-                    tx, data["amount"]
+            propagated = {
+                k: data[k]
+                for k in ("amount", "description", "category_id")
+                if k in data
+            }
+            if propagated and tx.recurring_source_id is not None:
+                RecurringExpenseService(transaction_repo=self._tx).propagate(
+                    tx, propagated
                 )
         return tx
 
@@ -502,6 +514,17 @@ _KEYWORD_CATEGORIES = [
 ]
 
 
+def _keyword_category(description: str) -> str | None:
+    return next(
+        (
+            name
+            for pattern, name in _KEYWORD_CATEGORIES
+            if re.search(pattern, description, re.IGNORECASE)
+        ),
+        None,
+    )
+
+
 class StatementImportService:
     """R5/R6: importa fatura/extrato (Inter, Nubank, OFX) como transações."""
 
@@ -537,6 +560,24 @@ class StatementImportService:
         categories = {
             c.name.lower(): c for c in CategoryRepository.list_by_user(user_id)
         }
+
+        # LLM só para despesas sem palavra-chave; uma chamada por importação.
+        to_classify = list(
+            dict.fromkeys(
+                r.description
+                for r in rows
+                if r.outflow
+                and not _IGNORE_RE.search(r.description)
+                and _keyword_category(r.description) is None
+            )
+        )
+        llm = dict(
+            zip(
+                to_classify,
+                classify(to_classify, [c.name for c in categories.values()]),
+                strict=True,
+            )
+        )
 
         keys = self._keys(card_id, rows)
         existing = self._tx.existing_import_keys(user_id, keys)
@@ -577,7 +618,7 @@ class StatementImportService:
                     category = (
                         None
                         if tx_type == TransactionType.INCOME
-                        else self._category_for(row, categories, user_id)
+                        else self._category_for(row, categories, user_id, llm)
                     )
                     item["category"] = category.name if category else None
                     self._tx.create(
@@ -646,15 +687,13 @@ class StatementImportService:
         return False
 
     @staticmethod
-    def _category_for(row: ParsedRow, categories: dict[str, Any], user_id: int) -> Any:
-        wanted = next(
-            (
-                name
-                for pattern, name in _KEYWORD_CATEGORIES
-                if re.search(pattern, row.description, re.IGNORECASE)
-            ),
-            None,
-        )
+    def _category_for(
+        row: ParsedRow,
+        categories: dict[str, Any],
+        user_id: int,
+        llm: dict[str, str | None],
+    ) -> Any:
+        wanted = _keyword_category(row.description) or llm.get(row.description)
         if wanted is None and row.bank_category:
             wanted = row.bank_category
         cat = categories.get((wanted or "").lower()) or categories.get("outros")

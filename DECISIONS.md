@@ -32,3 +32,4 @@
 | MCP | Auth bearer via middleware ASGI próprio (`hmac.compare_digest`) em vez do AuthSettings/OAuth do SDK | Token estático de dono único; OAuth seria over-engineering |
 | MCP | `CreateTransactionDTO.import_key` + `TransactionRepository.get_by_import_key` | Idempotência do `add_transaction` reaproveitando `Transaction.import_key` (`mcp:<sha1>`), sem schema novo |
 | MCP | `UserRepository.get_id_by_email` e `RecurringExpenseRepository.create` | ORM só em repositories; add_fixed não tinha service de criação (view usava serializer) |
+| Import | Categorização de fatura via LLM local (llama-server, `/v1/chat/completions`) com `json_schema` enum das categorias do usuário; ordem palavra-chave → LLM → categoria do banco → Outros | Uma chamada por importação, saída restrita às categorias cadastradas; falha/desligado cai silenciosamente no fallback (só log warning) |

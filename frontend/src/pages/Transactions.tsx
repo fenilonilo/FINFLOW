@@ -104,11 +104,13 @@ export default function Transactions() {
 
   const [editTx, setEditTx] = useState<Transaction | null>(null)
   const [editAmount, setEditAmount] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editCategory, setEditCategory] = useState('')
   const editMutation = useMutation({
-    mutationFn: ({ id, amount }: { id: number; amount: string }) =>
-      api.patch(`/transactions/${id}/`, { amount }),
+    mutationFn: ({ id, ...body }: { id: number; amount: string; description: string; category?: number | null }) =>
+      api.patch(`/transactions/${id}/`, body),
     onSuccess: () => {
-      toast('Valor atualizado', 'success')
+      toast('Lançamento atualizado', 'success')
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['summary', year, month] })
       setEditTx(null)
@@ -352,7 +354,7 @@ export default function Transactions() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
-                      onClick={() => { setEditTx(tx); setEditAmount(tx.amount) }}
+                      onClick={() => { setEditTx(tx); setEditAmount(tx.amount); setEditDescription(tx.description); setEditCategory(tx.category ? String(tx.category) : '') }}
                       className="mr-2 text-text-muted hover:text-accent transition-colors"
                       title="Editar valor"
                     >
@@ -583,11 +585,18 @@ export default function Transactions() {
         </div>
       )}
 
-      {/* Edit amount */}
+      {/* Edit transaction */}
       {editTx && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-surface p-6 shadow-2xl">
-            <h2 className="mb-1 text-base font-semibold text-text-primary">{editTx.description}</h2>
+            <h2 className="mb-1 text-base font-semibold text-text-primary">Editar lançamento</h2>
+            <label className="mb-1.5 mt-4 block text-xs font-medium text-text-muted">Descrição</label>
+            <input
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              maxLength={100}
+              className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-accent/50 focus:outline-none"
+            />
             <label className="mb-1.5 mt-4 block text-xs font-medium text-text-muted">Valor (R$)</label>
             <input
               value={editAmount}
@@ -595,6 +604,21 @@ export default function Transactions() {
               inputMode="decimal"
               className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-accent/50 focus:outline-none"
             />
+            {editTx.type !== 'income' && (
+              <>
+                <label className="mb-1.5 mt-4 block text-xs font-medium text-text-muted">Categoria</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-accent/50 focus:outline-none"
+                >
+                  <option value="">Selecionar...</option>
+                  {categories?.results.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
             {editTx.is_fixed && (
               <p className="mt-2 text-xs text-warning">Vale para este mês e os seguintes.</p>
             )}
@@ -603,8 +627,13 @@ export default function Transactions() {
                 Cancelar
               </button>
               <button
-                disabled={!/^\d+(\.\d{1,2})?$/.test(editAmount) || editMutation.isPending}
-                onClick={() => editMutation.mutate({ id: editTx.id, amount: editAmount })}
+                disabled={!/^\d+(\.\d{1,2})?$/.test(editAmount) || !editDescription.trim() || editMutation.isPending}
+                onClick={() => editMutation.mutate({
+                  id: editTx.id,
+                  amount: editAmount,
+                  description: editDescription.trim(),
+                  ...(editTx.type !== 'income' && editCategory ? { category: Number(editCategory) } : {}),
+                })}
                 className="rounded-xl bg-accent/20 px-5 py-2 text-sm font-medium text-accent hover:bg-accent/30 transition-colors disabled:opacity-50"
               >
                 Salvar

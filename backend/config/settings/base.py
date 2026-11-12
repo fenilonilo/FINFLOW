@@ -130,3 +130,8 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = "/static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# LLM local (llama-server, API OpenAI) para categorizar importação de fatura.
+# Vazio = desligado (cai no fallback de palavra-chave/categoria do banco).
+LLM_URL = os.environ.get("LLM_URL", "")
+LLM_TIMEOUT = float(os.environ.get("LLM_TIMEOUT", "20"))

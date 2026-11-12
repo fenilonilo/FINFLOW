@@ -65,15 +65,15 @@ class TransactionRepository:
         return Transaction.objects.create(**data)
 
     @staticmethod
-    def update_later_unpaid_amount(tx: Transaction, amount: Decimal) -> int:
-        """R2: aplica amount às transações posteriores não pagas do mesmo template."""
+    def update_later_unpaid(tx: Transaction, fields: dict[str, Any]) -> int:
+        """R2: aplica fields às transações posteriores não pagas do mesmo template."""
         later = Q(year__gt=tx.year) | Q(year=tx.year, month__gt=tx.month)
         return Transaction.objects.filter(
             later,
             user_id=tx.user_id,
             recurring_source_id=tx.recurring_source_id,
             is_paid=False,
-        ).update(amount=amount)
+        ).update(**fields)
 
     @staticmethod
     def existing_import_keys(user_id: int, keys: list[str]) -> set[str]:

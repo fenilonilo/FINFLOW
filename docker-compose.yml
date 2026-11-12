@@ -26,6 +26,8 @@ services:
       POSTGRES_USER: finflow
       POSTGRES_PASSWORD: finflow
       SECRET_KEY: dev-insecure-key-change-in-prod
+      LLM_URL: ${LLM_URL:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-20}
     ports:
       - "8000:8000"
     volumes:
