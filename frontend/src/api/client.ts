@@ -43,7 +43,10 @@ api.interceptors.response.use(
     const axiosError = error as { config?: { _retry?: boolean; headers?: Record<string, string> }; response?: { status?: number } }
     const originalRequest = axiosError.config
 
-    if (axiosError.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // login/refresh 401 = credenciais inválidas: rejeita sem refresh nem redirect (preserva o formulário)
+    const isAuthCall = String((originalRequest as { url?: string } | undefined)?.url ?? '').includes('/auth/token/')
+
+    if (axiosError.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthCall) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })

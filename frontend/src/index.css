@@ -321,10 +321,10 @@ body::after {
 .conta .cph > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .conta .cph i { position: absolute; right: -3px; bottom: -3px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #0b140d; border: 1px solid rgba(126,224,138,.35); color: var(--g); }
 .conta .cph i svg { width: 14px; height: 14px; }
-.conta .field { display: block; margin-bottom: 12px; }
-.conta .field span { display: block; font-size: 12px; font-weight: 500; color: var(--mu); margin-bottom: 6px; }
-.conta .field input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.25); outline: none; transition: border-color .2s, box-shadow .2s; }
-.conta .field input:focus { border-color: rgba(126,224,138,.45); box-shadow: 0 0 0 4px rgba(126,224,138,.08); }
+.conta .field, .login .field { display: block; margin-bottom: 12px; }
+.conta .field span, .login .field span { display: block; font-size: 12px; font-weight: 500; color: var(--mu); margin-bottom: 6px; }
+.conta .field input, .login .field input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.25); outline: none; transition: border-color .2s, box-shadow .2s; }
+.conta .field input:focus, .login .field input:focus { border-color: rgba(126,224,138,.45); box-shadow: 0 0 0 4px rgba(126,224,138,.08); }
 .conta .ferr { margin-top: 4px; font-size: 12px; color: #f87171; }
 @media (max-width: 1099px) { .conta .aj { width: 100%; } }
 
@@ -335,11 +335,7 @@ body::after {
   .login .card { width: min(370px, 100% - 32px); padding: 30px 28px; border-radius: 24px; background: rgba(8,14,10,.42); border: 1px solid rgba(126,224,138,.16);
     backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%); box-shadow: 0 40px 120px rgba(0,0,0,.5); }
   .login h2 { font-family: var(--f-display); font-weight: var(--h1-w); text-transform: var(--h1-tt); letter-spacing: var(--h1-ls); font-size: calc(46px * var(--h1-k)); line-height: 1; margin: 12px 0 22px; }
-  .login .field { display: block; margin-bottom: 12px; }
-  .login .field span { display: block; font-size: 12px; font-weight: 500; color: var(--mu); margin-bottom: 6px; }
-  .login .field input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.25); outline: none; transition: border-color .2s, box-shadow .2s; }
-  .login .field input:focus { border-color: rgba(126,224,138,.45); box-shadow: 0 0 0 4px rgba(126,224,138,.08); }
-  .login .field em, .login .err { display: block; font-style: normal; font-size: 12px; color: #ff8a80; margin-top: 6px; }
+  .login .ferr, .login .err { display: block; font-style: normal; font-size: 12px; color: #ff8a80; margin-top: 6px; }
   .login .btn { width: 100%; justify-content: center; margin-top: 8px; padding: 13px; }
   .login .btn:disabled { opacity: .6; cursor: default; }
   .login .row { display: flex; justify-content: space-between; font-size: 12px; color: var(--mu); margin-top: 14px; }

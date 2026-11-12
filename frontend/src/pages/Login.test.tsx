@@ -1,15 +1,18 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthContext } from '@/contexts/AuthContext'
 import Login from './Login'
 
-function setup(login = vi.fn()) {
+function setup(login = vi.fn(), user: null | { id: number; email: string; first_name: string; avatar_url: null } = null) {
   render(
-    <AuthContext.Provider value={{ user: null, isLoading: false, login, setUser: vi.fn(), logout: vi.fn() }}>
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Login />
+    <AuthContext.Provider value={{ user, isLoading: false, login, setUser: vi.fn(), logout: vi.fn() }}>
+      <MemoryRouter initialEntries={['/login']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
+          <Route path="/" element={<p>home</p>} />
+          <Route path="/login" element={<Login />} />
+        </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,
   )
@@ -48,5 +51,27 @@ describe('Login', () => {
     await userEvent.type(screen.getByLabelText('Senha'), 'x')
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByText('Não foi possível entrar. Tente novamente.')).toBeInTheDocument()
+  })
+
+  it('submit vazio mostra erro e não chama login', async () => {
+    const login = setup()
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByText('Informe o e-mail')).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail')).toHaveAttribute('aria-invalid', 'true')
+    expect(login).not.toHaveBeenCalled()
+  })
+
+  it('botão desabilitado e "Entrando…" durante o envio', async () => {
+    setup(vi.fn(() => new Promise<void>(() => {})))
+    await userEvent.type(screen.getByLabelText('E-mail'), 'a@b.com')
+    await userEvent.type(screen.getByLabelText('Senha'), 'x')
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+    const btn = await screen.findByRole('button', { name: 'Entrando…' })
+    expect(btn).toBeDisabled()
+  })
+
+  it('usuário autenticado é redirecionado para /', () => {
+    setup(vi.fn(), { id: 1, email: 'a@b.com', first_name: 'A', avatar_url: null })
+    expect(screen.getByText('home')).toBeInTheDocument()
   })
 })

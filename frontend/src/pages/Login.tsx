@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,12 +12,14 @@ const schema = z.object({
 type Data = z.infer<typeof schema>
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Data>({
     resolver: zodResolver(schema),
   })
+
+  if (user) return <Navigate to="/" replace />
 
   async function onSubmit({ email, password }: Data) {
     setError('')
@@ -39,14 +41,14 @@ export default function Login() {
         <h2>Entrar</h2>
         <label className="field">
           <span>E-mail</span>
-          <input type="email" autoComplete="username" {...register('email')} />
-          {errors.email && <em role="alert">{errors.email.message}</em>}
+          <input type="email" autoComplete="username" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'email-err' : undefined} {...register('email')} />
         </label>
+        {errors.email && <em id="email-err" className="ferr" role="alert">{errors.email.message}</em>}
         <label className="field">
           <span>Senha</span>
-          <input type="password" autoComplete="current-password" {...register('password')} />
-          {errors.password && <em role="alert">{errors.password.message}</em>}
+          <input type="password" autoComplete="current-password" aria-invalid={!!errors.password} aria-describedby={errors.password ? 'password-err' : undefined} {...register('password')} />
         </label>
+        {errors.password && <em id="password-err" className="ferr" role="alert">{errors.password.message}</em>}
         {error && <p className="err" role="alert">{error}</p>}
         <button className="btn solid" type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Entrando…' : 'Entrar'}
