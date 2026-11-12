@@ -17,7 +17,7 @@ const PANES = { categories: CategoriasTab, payments: PagamentosTab, cards: Carto
 export default function Ajustes() {
   const tab = useParams().tab ?? 'categories'
   const navigate = useNavigate()
-  if (!(tab in PANES)) return <Navigate to="/settings/categories" replace />
+  if (!Object.keys(PANES).includes(tab)) return <Navigate to="/settings/categories" replace />
   const Pane = PANES[tab as keyof typeof PANES]
   return (
     <div className="aj-page">
@@ -25,7 +25,7 @@ export default function Ajustes() {
       <div className="aj">
         <Tabs tabs={TABS} value={tab} onChange={(id) => navigate(`/settings/${id}`)} />
         <div className="glass rise aj-panel">
-          <div className="pane" key={tab}><Pane /></div>
+          <div className="pane" key={tab} role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}><Pane /></div>
         </div>
       </div>
     </div>

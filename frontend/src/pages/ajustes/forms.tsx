@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldValues, type Path, type UseFormSetError } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -40,13 +40,20 @@ function Shell({ title, onSubmit, busy, archive, children }: { title: string; on
         {archive && <button type="button" className="btn line" onClick={() => setConfirm(true)}>{archive.label}</button>}
       </div>
       {archive && (
-        <ConfirmDialog open={confirm} title={`${archive.label}?`} description="Os lançamentos existentes são mantidos." confirmLabel={archive.label} onConfirm={archive.onConfirm} onCancel={() => setConfirm(false)} />
+        <ConfirmDialog open={confirm} title={`${archive.label}?`} description="Os lançamentos existentes são mantidos." confirmLabel={archive.label} onConfirm={() => { setConfirm(false); archive.onConfirm() }} onCancel={() => setConfirm(false)} />
       )}
     </form>
   )
 }
 
-const optMoney = z.string().refine((v) => v === '' || /\d/.test(v), 'Valor inválido')
+const optMoney = z.string().refine((v) => v === '' || /^[\d.,\sR$]*\d[\d.,\sR$]*$/.test(v), 'Valor inválido')
+
+// mapeia o envelope {errors:{campo:[msg]}} para os campos do formulário
+function fail<T extends FieldValues>(err: unknown, setError: UseFormSetError<T>, msg: string, known: string[]) {
+  const errors = (err as { response?: { data?: { errors?: Record<string, string[]> } } })?.response?.data?.errors ?? {}
+  for (const [k, v] of Object.entries(errors)) if (known.includes(k) && v?.[0]) setError(k as Path<T>, { message: v[0] })
+  toast(msg, 'error')
+}
 const dayField = z.number({ invalid_type_error: 'Dia inválido' }).int().min(1, 'Dia inválido').max(31, 'Dia inválido')
 
 // ---------- categoria ----------
@@ -64,7 +71,7 @@ export function CategoryForm({ item, onDone }: { item?: Category; onDone: () => 
   const create = useCreateCategory()
   const update = useUpdateCategory()
   const archive = useArchiveCategory()
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CatData>({
+  const { register, handleSubmit, watch, setValue, setError, formState: { errors } } = useForm<CatData>({
     resolver: zodResolver(catSchema),
     defaultValues: { name: item?.name ?? '', icon: item?.icon ?? 'tag', color: item?.color ?? '#34d399', parent: item?.parent ?? null, monthly_budget: item?.monthly_budget ?? '' },
   })
@@ -75,7 +82,7 @@ export function CategoryForm({ item, onDone }: { item?: Category; onDone: () => 
       else await create.mutateAsync(payload)
       toast(item ? 'Categoria atualizada' : 'Categoria criada', 'success')
       onDone()
-    } catch { toast('Erro ao salvar categoria', 'error') }
+    } catch (e) { fail(e, setError, 'Erro ao salvar categoria', ['name', 'parent', 'monthly_budget']) }
   })
   return (
     <Shell
@@ -109,7 +116,7 @@ export function MethodForm({ item, onDone }: { item?: PaymentMethod; onDone: () 
   const create = useCreatePaymentMethod()
   const update = useUpdatePaymentMethod()
   const archive = useArchivePaymentMethod()
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<PmData>({
+  const { register, handleSubmit, watch, setValue, setError, formState: { errors } } = useForm<PmData>({
     resolver: zodResolver(pmSchema),
     defaultValues: { name: item?.name ?? '', icon: item?.icon ?? 'wallet', color: item?.color ?? '#34d399' },
   })
@@ -119,7 +126,7 @@ export function MethodForm({ item, onDone }: { item?: PaymentMethod; onDone: () 
       else await create.mutateAsync(d)
       toast(item ? 'Forma atualizada' : 'Forma criada', 'success')
       onDone()
-    } catch { toast('Erro ao salvar forma de pagamento', 'error') }
+    } catch (e) { fail(e, setError, 'Erro ao salvar forma de pagamento', ['name']) }
   })
   return (
     <Shell
@@ -153,7 +160,7 @@ type CardData = z.infer<typeof cardSchema>
 export function CardForm({ item, onDone }: { item?: CardSummary; onDone: () => void }) {
   const create = useCreateCard()
   const update = useUpdateCard()
-  const { register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm<CardData>({
+  const { register, handleSubmit, watch, setValue, getValues, setError, formState: { errors } } = useForm<CardData>({
     resolver: zodResolver(cardSchema),
     defaultValues: item
       ? { name: item.name, bank: item.bank ?? 'other', color: item.color, closing_day: item.closing_day, due_day: item.due_day, limit: item.limit ?? '', functions: item.functions }
@@ -167,7 +174,7 @@ export function CardForm({ item, onDone }: { item?: CardSummary; onDone: () => v
       else await create.mutateAsync(payload)
       toast(item ? 'Cartão atualizado' : 'Cartão criado', 'success')
       onDone()
-    } catch { toast('Erro ao salvar cartão', 'error') }
+    } catch (e) { fail(e, setError, 'Erro ao salvar cartão', ['name', 'closing_day', 'due_day', 'limit', 'functions']) }
   })
   const num = { valueAsNumber: true } as const
   return (
@@ -226,7 +233,7 @@ export function FixoForm({ item, onDone }: { item?: RecurringExpense; onDone: ()
   const pms = (usePaymentMethods().data?.results ?? []).filter((p) => !p.is_archived)
   const create = useCreateRecurring()
   const update = useUpdateRecurring()
-  const { register, handleSubmit, formState: { errors } } = useForm<FixData>({
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<FixData>({
     resolver: zodResolver(fixSchema),
     defaultValues: { description: item?.description ?? '', is_variable: item?.is_variable ?? false, default_amount: item?.default_amount ?? '', due_day: item?.due_day ?? 1, category: item?.category ?? null, payment_method: item?.payment_method ?? null },
   })
@@ -237,7 +244,7 @@ export function FixoForm({ item, onDone }: { item?: RecurringExpense; onDone: ()
       else await create.mutateAsync({ ...payload, type: 'expense', status: 'active' })
       toast(item ? 'Fixo atualizado' : 'Fixo criado', 'success')
       onDone()
-    } catch { toast('Erro ao salvar fixo', 'error') }
+    } catch (e) { fail(e, setError, 'Erro ao salvar fixo', ['description', 'default_amount', 'due_day']) }
   })
   const sel = { setValueAs: (v: string) => (v ? Number(v) : null) }
   return (

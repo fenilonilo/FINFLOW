@@ -87,4 +87,16 @@ describe('Ajustes', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pausar' }))
     await waitFor(() => expect(patch).toHaveBeenCalledWith({ status: 'paused' }))
   })
+
+  it('Total previsto exclui receitas', async () => {
+    const r = (id: number, type: string, amt: string) => ({
+      id, type, card: null, start_date: null, description: `T${id}`, is_variable: false, category: null, category_detail: null,
+      payment_method: null, payment_method_detail: null, default_amount: amt, due_day: id, status: 'active', total_occurrences: null, generated_count: 0, acquisition: null,
+    })
+    server.use(http.get(`${B}/recurring-expenses/`, () => page([r(1, 'expense', '100.00'), r(2, 'income', '8000.00')])))
+    setup('/settings/fixed')
+    const row = (await screen.findByText('Total previsto')).closest('.rw')!
+    expect(row.textContent).toMatch(/100,00/)
+    expect(row.textContent).not.toMatch(/8\.100/)
+  })
 })

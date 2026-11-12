@@ -22,7 +22,7 @@ export default function FixosTab() {
   if (isError) return <p className="muted">Erro ao carregar fixos</p>
 
   const list = [...(data?.results ?? [])].sort((a, b) => a.due_day - b.due_day)
-  const total = sumMoney(list.filter((r) => r.status === 'active' && r.default_amount).map((r) => r.default_amount!))
+  const total = sumMoney(list.filter((r) => r.type === 'expense' && r.status === 'active' && r.default_amount).map((r) => r.default_amount!))
   const close = () => setSheet(null)
   const fail = (m: string) => ({ onError: () => toast(m, 'error') })
 
@@ -37,9 +37,9 @@ export default function FixosTab() {
               <div className="dd"><b>{String(r.due_day).padStart(2, '0')}</b><small>dia</small></div>
               <div className="tt">
                 <b>{r.description}</b>
-                <small>{r.category_detail?.name ?? 'Sem categoria'} · {r.is_variable ? 'valor estimado' : r.payment_method_detail?.name ?? 'sem forma'}</small>
+                <small>{r.category_detail?.name ?? 'Sem categoria'} · {r.type === 'income' ? 'receita' : r.is_variable ? 'valor estimado' : r.payment_method_detail?.name ?? 'sem forma'}</small>
               </div>
-              <span className="end">{r.default_amount ? `${r.is_variable ? '≈ ' : ''}${bare(r.default_amount)}` : '—'}</span>
+              <span className="end">{r.default_amount ? `${r.type === 'income' ? '+ ' : ''}${r.is_variable ? '≈ ' : ''}${bare(r.default_amount)}` : '—'}</span>
               <div className="acts">
                 <button type="button" className="btn line" onClick={() => setSheet(r)}>Editar</button>
                 {off
