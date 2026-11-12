@@ -9,6 +9,7 @@ export type Bull = {
 // Port fiel do protótipo (prototipo.html 1185–1351): parâmetros inalterados.
 export function createBull(canvas: HTMLCanvasElement): Bull | null {
   let renderer: THREE.WebGLRenderer
+  if (!(canvas.getContext('webgl2') || canvas.getContext('webgl'))) return null
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
   } catch {
@@ -101,9 +102,9 @@ export function createBull(canvas: HTMLCanvasElement): Bull | null {
     if (!reduced) {
       uniforms.uMouse.value.lerp(localMouse(), 0.18)
       uniforms.uMouseStr.value += ((inside ? 1 : 0) - uniforms.uMouseStr.value) * 0.08
+      group.rotation.y += (mouse.x * 0.14 - group.rotation.y) * 0.04
+      group.rotation.x += (-mouse.y * 0.05 - group.rotation.x) * 0.04
     }
-    group.rotation.y += (mouse.x * 0.14 - group.rotation.y) * 0.04
-    group.rotation.x += (-mouse.y * 0.05 - group.rotation.x) * 0.04
     renderer.render(scene, camera)
   }
   const onVisibility = () => {
@@ -220,6 +221,10 @@ export function createBull(canvas: HTMLCanvasElement): Bull | null {
     group.add(new THREE.Points(geo, mat))
     if (!document.hidden) renderer.setAnimationLoop(frame)
   }
+  img.onerror = () => {
+    console.warn('bull: falha ao carregar /touro.jpg')
+    canvas.dataset.fallback = 'true'
+  }
   img.src = '/touro.jpg'
 
   return {
@@ -228,6 +233,9 @@ export function createBull(canvas: HTMLCanvasElement): Bull | null {
       if (!placed || reduced || to === screen) {
         // primeira chamada, reduced-motion ou só mudou o retângulo: sem dissolve
         placed = true
+        clearTimeout(swapTimer)
+        morphTarget = 1
+        morphSpeed = 0.75
         screen = to
         dimTarget = applyPlace()
         return

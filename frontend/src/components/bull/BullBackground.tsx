@@ -13,6 +13,7 @@ export default function BullBackground() {
       canvas.dataset.fallback = 'true'
       return
     }
+    const b = bull
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => sync()) : null
     let observed: Element | null = null
     function sync() {
@@ -23,11 +24,14 @@ export default function BullBackground() {
         observed = main
       }
       const content = main?.firstElementChild ?? main
-      bull!.place(document.body.dataset.screen ?? 'login', content ? content.getBoundingClientRect() : null)
+      b.place(document.body.dataset.screen ?? 'login', content ? content.getBoundingClientRect() : null)
     }
     sync()
-    const mo = new MutationObserver(sync)
-    mo.observe(document.body, { attributes: true, attributeFilter: ['data-screen'] })
+    // re-sincroniza na troca de data-screen ou quando o <main> aparece/troca (ex.: após o spinner do RequireAuth)
+    const mo = new MutationObserver((recs) => {
+      if (recs.some((r) => r.type === 'attributes') || document.querySelector('main') !== observed) sync()
+    })
+    mo.observe(document.body, { attributes: true, attributeFilter: ['data-screen'], childList: true, subtree: true })
     const onDown = (e: PointerEvent) => {
       if ((e.target as Element | null)?.closest?.(IGNORE)) return
       bull.shock(e.clientX, e.clientY)
