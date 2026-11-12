@@ -169,3 +169,24 @@ class Debt(models.Model):
 
     class Meta:
         db_table = "transactions_debt"
+
+
+class StatementImport(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="statement_imports"
+    )
+    card = models.ForeignKey(
+        "cards.Card", on_delete=models.CASCADE, related_name="statement_imports"
+    )
+    kind = models.CharField(max_length=10)
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    month = models.PositiveSmallIntegerField(null=True, blank=True)
+    filename = models.CharField(max_length=255)
+    created_count = models.PositiveIntegerField()
+    skipped_count = models.PositiveIntegerField()
+    total = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "transactions_statementimport"
+        ordering = ["-created_at", "-id"]

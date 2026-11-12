@@ -7,6 +7,7 @@ from apps.transactions.models import (
     Debt,
     RecurringExpense,
     RecurringStatus,
+    StatementImport,
     Transaction,
     TransactionType,
 )
@@ -189,3 +190,17 @@ class DebtRepository:
         debt.installments.filter(is_paid=False).delete()
         debt.installments.filter(is_paid=True).update(debt=None)
         debt.delete()
+
+
+class StatementImportRepository:
+    @staticmethod
+    def create(**data: Any) -> StatementImport:
+        return StatementImport.objects.create(**data)
+
+    @staticmethod
+    def recent(user_id: int, limit: int = 12) -> list[StatementImport]:
+        return list(
+            StatementImport.objects.filter(user_id=user_id).select_related("card")[
+                :limit
+            ]
+        )

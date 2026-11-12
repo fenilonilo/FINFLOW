@@ -1,12 +1,18 @@
 import json
+from decimal import Decimal
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
-from apps.common.factories import CardFactory, CategoryFactory, UserFactory
+from apps.common.factories import (
+    CardFactory,
+    CategoryFactory,
+    StatementImportFactory,
+    UserFactory,
+)
 from apps.transactions import services
-from apps.transactions.models import Transaction
+from apps.transactions.models import StatementImport, Transaction
 
 pytestmark = pytest.mark.django_db
 
@@ -74,3 +80,31 @@ def test_non_integer_category_value_returns_400(env):
         resp = _post(api, card, categories=bad)
         assert resp.status_code == 400
         assert "categories" in resp.data
+
+
+def test_real_import_records_history_and_dry_run_does_not(env):
+    api, user, card = env
+    _post(api, card, dry_run="true")
+    assert StatementImport.objects.count() == 0
+    _post(api, card)
+    h = StatementImport.objects.get(user=user)
+    assert (h.card_id, h.kind, h.year, h.month) == (card.id, "credit", 2026, 11)
+    assert h.filename == "Nubank_2026-11-12.csv"
+    assert (h.created_count, h.skipped_count, h.total) == (1, 0, Decimal("10.00"))
+
+
+def test_list_imports_only_own_max_12_newest_first(env):
+    api, user, card = env
+    for i in range(13):
+        StatementImportFactory(user=user, card=card, filename=f"f{i}.csv")
+    StatementImportFactory()
+    resp = api.get("/api/v1/imports/")
+    assert resp.status_code == 200
+    assert len(resp.data) == 12
+    assert resp.data[0]["filename"] == "f12.csv"
+    assert set(resp.data[0]) == {
+        "id", "card_id", "card_name", "card_bank", "kind", "year", "month",
+        "filename", "created_count", "skipped_count", "total", "created_at",
+    }  # fmt: skip
+    assert resp.data[0]["card_name"] == card.name
+    assert resp.data[0]["total"] == "10.00"

@@ -5,7 +5,12 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.core.api.serializers import CategorySerializer, PaymentMethodSerializer
-from apps.transactions.models import Debt, RecurringExpense, Transaction
+from apps.transactions.models import (
+    Debt,
+    RecurringExpense,
+    StatementImport,
+    Transaction,
+)
 
 
 def _serialize_summary(summary):
@@ -205,3 +210,15 @@ class DebtSerializer(serializers.ModelSerializer):
                 {"origin": ["Dívida de cartão não é editável; exclua e relance."]}
             )
         return data
+
+
+class StatementImportHistorySerializer(serializers.ModelSerializer):
+    card_name = serializers.CharField(source="card.name")
+    card_bank = serializers.CharField(source="card.bank")
+
+    class Meta:
+        model = StatementImport
+        fields = [
+            "id", "card_id", "card_name", "card_bank", "kind", "year", "month",
+            "filename", "created_count", "skipped_count", "total", "created_at",
+        ]  # fmt: skip

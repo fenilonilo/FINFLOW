@@ -37,3 +37,4 @@
 | Cartões | Card.bank (enum) e Card.is_active; PMs de cartão inativo somem das listagens (exceto include_archived) e importação é bloqueada | Permite desativar cartão sem perder histórico |
 | Cartões | Fatura de cartão deixa de ser gasto fixo; R3/R4 removidos, só itens importados contam. Campo RecurringExpense.card mantido sem uso | Evita duplicação fixo×itens da fatura |
 | Import | POST /imports/statement/ aceita dry_run e categories (JSON indice -> id; null = fallback "Outros" sem LLM); itens ganham index/category_id; dry-run responde 200, nao persiste e nunca cria "Outros" (category_id null se ainda nao existe) | Previa na tela Importar sem duplicar a logica (atomic + set_rollback); confirmar reenviando o mapa devolvido e consistente |
+| Import | Model StatementImport (historico de importacoes reais) e GET /imports/ (12 mais recentes do usuario) | Tela Importar exibe historico; gravado no mesmo atomic, fora do dry-run |

@@ -34,6 +34,7 @@ from apps.transactions.models import (
 from apps.transactions.repositories import (
     DebtRepository,
     RecurringExpenseRepository,
+    StatementImportRepository,
     TransactionRepository,
 )
 
@@ -647,6 +648,18 @@ class StatementImportService:
                 items.append(item)
             if dry_run:
                 db_transaction.set_rollback(True)
+            else:
+                StatementImportRepository.create(
+                    user_id=user_id,
+                    card_id=card_id,
+                    kind=kind,
+                    year=year,
+                    month=month,
+                    filename=filename[:255],
+                    created_count=created,
+                    skipped_count=skipped,
+                    total=total,
+                )
 
         return {
             "created": created,
