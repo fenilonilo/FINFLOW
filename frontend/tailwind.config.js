@@ -7,7 +7,7 @@ export default {
         ink: '#040605',
         g: '#7ee08a',
         g2: '#3f9a50',
-        blue: '#5b8fc7',
+        fx: '#5b8fc7',
         mu: '#8aa38e',
         mu2: '#5f7764',
         tx: '#ecf3ed',

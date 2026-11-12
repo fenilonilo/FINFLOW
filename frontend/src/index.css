@@ -17,18 +17,17 @@
 }
 
 body::after {
-  content: ''; position: fixed; inset: -50%; pointer-events: none; opacity: .08; z-index: 5;
+  content: ''; position: fixed; inset: -50%; pointer-events: none; opacity: .08; z-index: 1;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: grain 1.2s steps(6) infinite;
 }
 @keyframes grain { 0% { transform: translate(0, 0) } 20% { transform: translate(-3%, 2%) } 40% { transform: translate(2%, -3%) } 60% { transform: translate(-2%, -1%) } 80% { transform: translate(3%, 3%) } 100% { transform: translate(0, 0) } }
 
+@layer components {
 .num { font-family: var(--f-num); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -.01em; }
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
 .rise { opacity: 0; animation: rise .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 55ms + 120ms); }
-@keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
-@media (prefers-reduced-motion: reduce) { .rise { animation: none; opacity: 1; } body::after { animation: none; } }
 
 .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--mu); display: flex; align-items: center; gap: 10px; }
 .eyebrow::before { content: ''; width: 18px; height: 1px; background: var(--g); opacity: .7; }
@@ -47,3 +46,10 @@ body::after {
 .btn.line { background: none; border-color: rgba(255, 255, 255, .12); }
 .pill { font-size: 11.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: rgba(126, 224, 138, .1); color: var(--g); border: 1px solid rgba(126, 224, 138, .25); }
 .pill.line { background: none; color: var(--tx); border-color: rgba(255, 255, 255, .12); cursor: pointer; }
+.muted { color: var(--mu); }
+.display { font-family: var(--f-display); font-weight: 400; }
+.btn kbd { font: 600 10px var(--f-num); opacity: .6; border: 1px solid currentColor; border-radius: 5px; padding: 0 4px; }
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; opacity: 1; } body::after { animation: none; } .btn { transition: none; } }
