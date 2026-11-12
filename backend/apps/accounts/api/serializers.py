@@ -47,9 +47,30 @@ class AvatarUploadSerializer(serializers.Serializer):
 
 
 class DeviceSessionSerializer(serializers.ModelSerializer):
+    is_current = serializers.SerializerMethodField()
+
     class Meta:
         model = DeviceSession
-        fields = ["id", "device_name", "last_seen_at", "created_at", "revoked"]
+        fields = [
+            "id",
+            "device_name",
+            "last_seen_at",
+            "created_at",
+            "revoked",
+            "is_current",
+        ]
+
+    def get_is_current(self, obj) -> bool:
+        return obj.id == self.context.get("sid")
+
+
+class TokenPairSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=False)
 
 
 class LoginSerializer(serializers.Serializer):

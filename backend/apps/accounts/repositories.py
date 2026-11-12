@@ -1,6 +1,6 @@
 from django.core.files.base import ContentFile
 
-from apps.accounts.models import User
+from apps.accounts.models import DeviceSession, User
 
 
 class UserRepository:
@@ -35,3 +35,39 @@ class UserRepository:
     def clear_avatar(user: User) -> None:
         if user.avatar:
             user.avatar.delete(save=True)
+
+
+class DeviceSessionRepository:
+    @staticmethod
+    def create(user: User, device_name: str) -> DeviceSession:
+        return DeviceSession.objects.create(user=user, device_name=device_name)
+
+    @staticmethod
+    def list_active(user: User):
+        return DeviceSession.objects.filter(user=user, revoked=False).order_by(
+            "-created_at", "-id"
+        )
+
+    @staticmethod
+    def last_seen_if_active(sid: int, user_id: int):
+        """last_seen_at da sessao ativa, ou None se inexistente/revogada."""
+        return (
+            DeviceSession.objects.filter(pk=sid, user_id=user_id, revoked=False)
+            .values_list("last_seen_at", flat=True)
+            .first()
+        )
+
+    @staticmethod
+    def touch(sid: int, when) -> None:
+        # update() nao dispara auto_now: o horario e o informado
+        DeviceSession.objects.filter(pk=sid).update(last_seen_at=when)
+
+    @staticmethod
+    def revoke(user: User, sid: int) -> bool:
+        return bool(
+            DeviceSession.objects.filter(pk=sid, user=user).update(revoked=True)
+        )
+
+    @staticmethod
+    def is_active(sid: int) -> bool:
+        return DeviceSession.objects.filter(pk=sid, revoked=False).exists()

@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -12,17 +12,25 @@ from apps.accounts.api.serializers import (
     AvatarUploadSerializer,
     DeviceSessionSerializer,
     LoginSerializer,
+    LogoutSerializer,
     ProfileUpdateSerializer,
     RegisterSerializer,
+    TokenPairSerializer,
     UserSerializer,
 )
-from apps.accounts.models import DeviceSession
-from apps.accounts.services import ProfileService
+from apps.accounts.repositories import DeviceSessionRepository
+from apps.accounts.services import ProfileService, SessionService
+from apps.common.exceptions import NotFoundError
+
+
+def _current_sid(request) -> int | None:
+    return request.auth.get("sid") if request.auth else None
 
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(request=RegisterSerializer, responses={201: UserSerializer})
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -33,37 +41,35 @@ class RegisterView(APIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(request=LoginSerializer, responses=TokenPairSerializer)
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = authenticate(
-            request,
-            username=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
-        )
+        data = serializer.validated_data
+        user = authenticate(request, username=data["email"], password=data["password"])
         if not user:
             return Response(
                 {"detail": "Credenciais inválidas."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-
-        device_name = serializer.validated_data.get("device_name", "")
-        if device_name:
-            DeviceSession.objects.get_or_create(user=user, device_name=device_name)
-
+        session = SessionService.start(user, data.get("device_name", ""))
         refresh = RefreshToken.for_user(user)
+        refresh["sid"] = session.id
         return Response({"access": str(refresh.access_token), "refresh": str(refresh)})
 
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=LogoutSerializer, responses={205: None})
     def post(self, request):
         try:
-            token = RefreshToken(request.data.get("refresh"))
-            token.blacklist()
-        except (TokenError, KeyError):
+            RefreshToken(request.data.get("refresh")).blacklist()
+        except TokenError:
             pass
+        sid = _current_sid(request)
+        if sid is not None:
+            SessionService.revoke(request.user, sid)
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
@@ -100,21 +106,22 @@ class AvatarView(APIView):
 class DeviceSessionListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=DeviceSessionSerializer(many=True))
     def get(self, request):
-        sessions = DeviceSession.objects.filter(user=request.user, revoked=False)
-        return Response(DeviceSessionSerializer(sessions, many=True).data)
+        sessions = DeviceSessionRepository.list_active(request.user)
+        ctx = {"sid": _current_sid(request)}
+        return Response(DeviceSessionSerializer(sessions, many=True, context=ctx).data)
 
 
 class DeviceSessionRevokeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=None,
+        parameters=[OpenApiParameter("pk", int, OpenApiParameter.PATH)],
+        responses={204: None},
+    )
     def delete(self, request, pk):
-        try:
-            session = DeviceSession.objects.get(pk=pk, user=request.user)
-            session.revoked = True
-            session.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except DeviceSession.DoesNotExist:
-            return Response(
-                {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+        if not SessionService.revoke(request.user, pk):
+            raise NotFoundError("Session not found.")
+        return Response(status=status.HTTP_204_NO_CONTENT)
