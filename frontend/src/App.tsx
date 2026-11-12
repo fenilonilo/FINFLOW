@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import AppShell, { useBodyScreen } from '@/components/shell/AppShell'
 import PageHeader from '@/components/shell/PageHeader'
+import BullBackground from '@/components/bull/BullBackground'
 import Login from '@/pages/Login'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,8 @@ const AccountTab = () => {
 export default function App() {
   useBodyScreen()
   return (
+    <>
+    <BullBackground />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route
@@ -52,5 +55,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
