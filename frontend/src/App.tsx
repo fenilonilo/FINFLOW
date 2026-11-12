@@ -4,6 +4,7 @@ import AppShell, { useBodyScreen } from '@/components/shell/AppShell'
 import PageHeader from '@/components/shell/PageHeader'
 import BullBackground from '@/components/bull/BullBackground'
 import Login from '@/pages/Login'
+import Lancamentos from '@/pages/lanc/Lancamentos'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -45,7 +46,7 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<Placeholder eyebrow="Lançamentos" title="Lançamentos" />} />
+        <Route path="/" element={<Lancamentos />} />
         <Route path="/import" element={<Placeholder eyebrow="Importar" title="Importar" />} />
         <Route path="/overview" element={<Placeholder eyebrow="Visão" title="Visão" />} />
         <Route path="/settings" element={<Navigate to="/settings/categories" replace />} />
