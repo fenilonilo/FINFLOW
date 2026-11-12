@@ -50,6 +50,13 @@ describe('Visao', () => {
     expect(table.querySelectorAll('tbody tr')).toHaveLength(13)
   })
 
+  it('mês projetado mostra "deve fechar perto de"', async () => {
+    const { container } = setup()
+    const cols = await waitCols(container)
+    fireEvent.click(cols[12])
+    expect(await screen.findByText(/deve fechar perto de/)).toBeInTheDocument()
+  })
+
   it('com apenas 1 mês de dados não lança', async () => {
     server.use(http.get(`${B}/months/:year/:month/summary/`, ({ params }) => {
       const now = new Date()

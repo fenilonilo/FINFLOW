@@ -11,8 +11,9 @@ const top4 = (x: number, y: number, w: number, h: number) => `M${x},${y + h}V${y
 export default function MonthsChart({ points, selected, onSelect }: { points: MonthPoint[]; selected: string; onSelect: (k: string) => void }) {
   const [hover, setHover] = useState<string | null>(null)
   const totals = points.map(p => Number(sumMoney([p.fixed, p.variable])))
-  const income = Number(points[points.length - 1]?.income ?? 0)
-  const step = Math.max(1000, Math.ceil(Math.max(...totals, income, 1) / 3 / 1000) * 1000)
+  const incomes = points.map(p => Number(p.income))
+  const income = incomes[incomes.length - 1] ?? 0
+  const step = Math.max(1000, Math.ceil(Math.max(...totals, ...incomes, 1) / 3 / 1000) * 1000)
   const maxV = step * 3 + step / 3
   const yv = (v: number) => PT + (H - PB - PT) * (1 - v / maxV)
   const slot = (W - PL) / Math.max(points.length, 1)
@@ -34,7 +35,8 @@ export default function MonthsChart({ points, selected, onSelect }: { points: Mo
           const base = yv(0), yF = yv(Number(p.fixed)), yT = yv(totals[i])
           return (
             <g key={k} className={`col${k === selected ? ' on' : ''}`} data-month={k} data-projected={p.projected ? 'true' : undefined}
-              onClick={() => onSelect(k)} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)}>
+              role="button" tabIndex={0} aria-label={`${monthLabelFull(p.month)} ${p.year}${p.projected ? ' (projeção)' : ''}: total ${brl0(sumMoney([p.fixed, p.variable]))}`}
+              onClick={() => onSelect(k)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(k) } }} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)}>
               <rect x={cx - slot / 2} y={0} width={slot} height={H} fill="transparent" />
               {p.projected ? (
                 <path className="seg" d={top4(x, yT, bw, base - yT)} fill="url(#hatch)" stroke="rgba(126,224,138,.5)" strokeDasharray="3 3" />
@@ -48,7 +50,7 @@ export default function MonthsChart({ points, selected, onSelect }: { points: Mo
             </g>
           )
         })}
-        <line x1={PL} x2={W} y1={yv(income)} y2={yv(income)} stroke="#86a08a" strokeWidth={1.5} strokeDasharray="4 4" />
+        <path d={incomes.map((v, i) => `${i ? `V${yv(v)}` : `M${PL},${yv(v)}`}H${PL + slot * (i + 1)}`).join("")} fill="none" stroke="#86a08a" strokeWidth={1.5} strokeDasharray="4 4" />
         <text className="gt" x={W} y={yv(income) - 7} textAnchor="end">receita {brl0(income)}</text>
       </svg>
       {hp && (

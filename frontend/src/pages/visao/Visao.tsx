@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useCardsSummary } from '@/api/cards'
 import { useRecurring } from '@/api/catalog'
 import { useMonthSummaries } from '@/api/months'
-import PageHeader from '@/components/shell/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
 import { usePeriod } from '@/contexts/PeriodContext'
 import { monthLabelFull } from '@/lib/date'
@@ -32,14 +31,14 @@ export default function Visao() {
   const fixedTotal = sumMoney(
     (recurring.data?.results ?? []).filter(r => r.status === 'active' && r.type === 'expense').map(r => r.default_amount ?? '0'),
   )
-  const projected = projectNext(series, fixedTotal)
+  const projected = recurring.isSuccess ? projectNext(series, fixedTotal) : null
   const points = projected ? [...series, projected] : series
   const point = points.find(p => keyOf(p) === sel) ?? series[series.length - 1]
   const idx = point ? points.indexOf(point) : -1
   const prev = idx > 0 ? points[idx - 1] : undefined
   const cards = useCardsSummary(point?.year ?? year, point?.month ?? month)
 
-  const loading = queries.some(q => q.isLoading) && !points.length
+  const loading = queries.some(q => q.isLoading)
   const h = point ? headline(point, prev) : null
   const summary = point && !point.projected ? summaries.find(s => s.year === point.year && s.month === point.month) : undefined
   const cats = [...(summary?.by_category ?? [])].filter(c => cmpMoney(c.total, '0') > 0).sort((a, b) => cmpMoney(b.total, a.total))
@@ -52,22 +51,22 @@ export default function Visao() {
 
   return (
     <div className="vis-page">
-      <PageHeader eyebrow="Visão · últimos 12 meses" title="Visão" />
+      <div className="eyebrow rise">Visão · últimos 12 meses</div>
       {loading ? <Skeleton className="h-96" /> : !point || !h ? (
         <p className="glass muted">Sem dados para exibir.</p>
       ) : (
         <>
-          <div className="sentence" aria-live="polite" key={keyOf(point)}>
+          <div className="sentence" aria-live="polite"><div key={keyOf(point)}>
             {point.projected ? (
               <>{monthLabelFull(point.month)} deve fechar perto de <em>{brl0(h.spent)}</em></>
             ) : (
               <>
                 {monthLabelFull(point.month)} custou <em>{brl0(h.spent)}</em>{' '}
-                {prev && h.deltaPct != null && <span className="soft">— {Math.abs(h.deltaPct)}% {h.deltaPct < 0 ? 'abaixo' : 'acima'} de {lower(prev.month)}.</span>}{' '}
+                {prev && h.deltaPct != null && <span className="soft">— {Math.round(Math.abs(h.deltaPct))}% {h.deltaPct < 0 ? 'a menos' : 'a mais'} que {lower(prev.month)}.</span>}{' '}
                 Sobraram <em>{brl0(h.left)}</em>.
               </>
             )}
-          </div>
+          </div></div>
           <div className="glass" style={{ paddingBottom: 12 }}>
             <div className="legend">
               <span><i style={{ background: 'var(--blue)' }} />Fixos</span>
@@ -97,7 +96,7 @@ export default function Visao() {
             <div className="glass">
               <h4>Destaque</h4>
               <div className="hl">
-                {dv == null ? 'Primeiro mês do histórico.' : <>Variáveis <em>{dv >= 0 ? '+' : ''}{Math.round(dv)}%</em> contra a média dos últimos 6 meses.</>}
+                {!past.length ? 'Primeiro mês do histórico.' : dv == null ? null : <>Variáveis <em>{dv >= 0 ? '+' : ''}{Math.round(dv)}%</em> contra a média dos últimos 6 meses.</>}
               </div>
               <div style={{ marginTop: 14 }}>
                 {(cards.data ?? []).filter(c => cmpMoney(c.invoice.amount, '0') > 0).map(c => (
