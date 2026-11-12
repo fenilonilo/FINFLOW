@@ -14,3 +14,8 @@ test('dt is clamped to 0.05', () => {
   stepSprings([a], 5); stepSprings([b], 0.05)
   expect(a.p).toBe(b.p)
 })
+test('custom snap thresholds', () => {
+  const s = spring(0, 100, 10); s.t = 0.005
+  expect(stepSprings([s], 1 / 60, { p: 1e-3, v: 1e-2 })).toBe(true)
+  expect(stepSprings([{ ...s }], 1 / 60)).toBe(false)
+})

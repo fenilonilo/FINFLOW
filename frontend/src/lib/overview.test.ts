@@ -20,13 +20,13 @@ test('projectNext uses same month last year', () => {
 })
 test('projectNext falls back to 6-month average, rounded to cent', () => {
   const s3 = [pt(9, '1', '100.00'), pt(10, '1', '200.00'), pt(11, '1', '200.01')]
-  expect(projectNext(s3, '1000.00').variable).toBe('166.67')
+  expect(projectNext(s3, '1000.00')?.variable).toBe('166.67')
   const s8 = [1, 2, 3, 4, 5, 6, 7, 8].map(m => pt(m, '1', m <= 2 ? '1000.00' : '10.00'))
-  expect(projectNext(s8, '1').variable).toBe('10.00')
+  expect(projectNext(s8, '1')?.variable).toBe('10.00')
 })
 test('projectNext rolls year', () => {
   const p = projectNext([{ ...pt(12, '1', '10.00') }], '1.00')
-  expect([p.year, p.month]).toEqual([2027, 1])
+  expect([p?.year, p?.month]).toEqual([2027, 1])
 })
 test('headline', () => {
   const oct = pt(10, '400.00', '400.00'), nov = pt(11, '400.00', '300.00')
@@ -34,3 +34,4 @@ test('headline', () => {
   expect(headline(nov, undefined).deltaPct).toBeNull()
   expect(headline(nov, pt(10, '0.00', '0.00')).deltaPct).toBeNull()
 })
+test('projectNext on empty series is null', () => expect(projectNext([], '1.00')).toBeNull())

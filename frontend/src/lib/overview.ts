@@ -1,5 +1,5 @@
 import type { MonthSummary } from '@/types/models'
-import { subMoney, sumMoney } from './money'
+import { avgMoney, subMoney, sumMoney } from './money'
 
 export type MonthPoint = { year: number; month: number; fixed: string; variable: string; income: string; projected: boolean }
 
@@ -8,19 +8,14 @@ export const buildSeries = (summaries: MonthSummary[]): MonthPoint[] =>
     .map(s => ({ year: s.year, month: s.month, fixed: s.total_fixed, variable: s.total_variable, income: s.total_income, projected: false }))
     .sort((a, b) => a.year - b.year || a.month - b.month)
 
-const fromCents = (c: number) => (c / 100).toFixed(2)
-
-export function projectNext(series: MonthPoint[], activeFixedTotal: string): MonthPoint {
+export function projectNext(series: MonthPoint[], activeFixedTotal: string): MonthPoint | null {
   const last = series[series.length - 1]
+  if (!last) return null
   const [year, month] = last.month === 12 ? [last.year + 1, 1] : [last.year, last.month + 1]
   const prevYear = series.find(p => p.year === year - 1 && p.month === month)
   let variable: string
   if (prevYear) variable = prevYear.variable
-  else {
-    const recent = series.slice(-6)
-    const cents = Number(sumMoney(recent.map(p => p.variable)).replace('.', ''))
-    variable = fromCents(Math.round(cents / recent.length))
-  }
+  else variable = avgMoney(series.slice(-6).map(p => p.variable))
   return { year, month, fixed: activeFixedTotal, variable, income: last.income, projected: true }
 }
 

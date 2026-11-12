@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { cmpMoney, pct, subMoney, sumMoney } from './money'
+import { avgMoney, cmpMoney, pct, subMoney, sumMoney } from './money'
 
 test('sumMoney is exact', () => {
   expect(sumMoney(['0.10', '0.20'])).toBe('0.30')
@@ -22,3 +22,13 @@ test('pct handles zero whole', () => {
   expect(pct('1', '3')).toBe(33.3)
 })
 test('invalid money throws', () => expect(() => sumMoney(['abc'])).toThrow())
+test('avgMoney rounds half away from zero', () => {
+  expect(avgMoney(['100.00', '200.00', '200.01'])).toBe('166.67')
+  expect(avgMoney(['0.01', '0.02'])).toBe('0.02')
+  expect(avgMoney(['-0.01', '-0.02'])).toBe('-0.02')
+  expect(avgMoney(['-100', '40'])).toBe('-30.00')
+  expect(avgMoney([])).toBe('0.00')
+})
+test('rejects >2 decimals and digitless strings', () => {
+  for (const bad of ['1.234', '', '-', '.']) expect(() => sumMoney([bad])).toThrow()
+})

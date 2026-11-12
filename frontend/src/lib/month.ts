@@ -1,5 +1,5 @@
 import type { RecurringExpense, Transaction } from '@/types/models'
-import { pct, sumMoney } from './money'
+import { pct, subMoney, sumMoney } from './money'
 
 export const isEstimated = (tx: Transaction, recurring: RecurringExpense[]): boolean =>
   tx.recurring_source != null && !!recurring.find(r => r.id === tx.recurring_source)?.is_variable
@@ -30,7 +30,10 @@ export function groupByDay(txs: Transaction[]) {
     .map(([date, items]) => ({
       date,
       items,
-      total: sumMoney(items.map(t => (t.type === 'income' ? t.amount : `-${t.amount}`))),
+      total: subMoney(
+        sumMoney(items.filter(t => t.type === 'income').map(t => t.amount)),
+        sumMoney(items.filter(t => t.type === 'expense').map(t => t.amount)),
+      ),
     }))
 }
 
