@@ -24,7 +24,6 @@ import Settings from '@/pages/Settings'
 // Auth context mock
 import { AuthContext } from '@/contexts/AuthContext'
 import { PeriodProvider } from '@/contexts/PeriodContext'
-import { ThemeProvider } from '@/contexts/ThemeContext'
 
 const server = setupServer(...handlers)
 
@@ -39,7 +38,6 @@ function Wrapper({ children }: { children: React.ReactNode }) {
     defaultOptions: { queries: { retry: false } },
   })
   return (
-    <ThemeProvider>
       <AuthContext.Provider
         value={{
           user: mockUser,
@@ -54,7 +52,6 @@ function Wrapper({ children }: { children: React.ReactNode }) {
           </PeriodProvider>
         </QueryClientProvider>
       </AuthContext.Provider>
-    </ThemeProvider>
   )
 }
 

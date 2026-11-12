@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PeriodProvider } from '@/contexts/PeriodContext'
-import { ThemeProvider } from '@/contexts/ThemeContext'
+import '@fontsource/playfair-display/400.css'
+import '@fontsource/playfair-display/400-italic.css'
+import '@fontsource/manrope/400.css'
+import '@fontsource/manrope/500.css'
+import '@fontsource/manrope/600.css'
+import '@fontsource/manrope/700.css'
 import './index.css'
 
 async function enableMocking() {
@@ -25,13 +30,11 @@ void enableMocking().catch(console.warn).then(() => {
     <React.StrictMode>
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
             <AuthProvider>
               <PeriodProvider>
                 <App />
               </PeriodProvider>
             </AuthProvider>
-          </ThemeProvider>
         </QueryClientProvider>
       </BrowserRouter>
     </React.StrictMode>

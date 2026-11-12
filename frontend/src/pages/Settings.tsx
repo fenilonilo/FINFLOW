@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTheme } from '@/contexts/ThemeContext'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -369,7 +368,6 @@ function PaymentMethodModal({
 
 export default function Settings() {
   const { user } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<Tab>('categories')
 
@@ -706,21 +704,6 @@ export default function Settings() {
       {/* Profile Tab */}
       {activeTab === 'profile' && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-border-subtle bg-surface p-6">
-            <h2 className="text-base font-semibold text-text-primary mb-4">Aparência</h2>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-text-primary">Tema</p>
-                <p className="text-xs text-text-muted">{theme === 'dark' ? 'Modo escuro' : 'Modo claro'}</p>
-              </div>
-              <button
-                onClick={toggleTheme}
-                className="rounded-xl border border-border-subtle bg-elevated px-4 py-2 text-sm text-text-primary hover:border-accent/50 transition-colors"
-              >
-                {theme === 'dark' ? 'Claro' : 'Escuro'}
-              </button>
-            </div>
-          </div>
           <div className="rounded-2xl border border-border-subtle bg-surface p-6">
             <div className="flex items-center gap-4 mb-6">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/20 text-xl font-bold text-accent">
