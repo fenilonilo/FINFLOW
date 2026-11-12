@@ -192,6 +192,8 @@ export interface Card {
   active_functions: Array<'credit' | 'debit'>
 }
 
+export type CardInput = Partial<Card> & { functions?: Array<'credit' | 'debit'> }
+
 export interface CardInvoice {
   id: number
   card: number

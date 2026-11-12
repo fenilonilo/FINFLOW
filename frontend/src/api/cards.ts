@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Card, CardInvoice, CardSummary, PaginatedResponse } from '@/types/models'
+import type { Card, CardInput, CardInvoice, CardSummary, PaginatedResponse } from '@/types/models'
 
 export function useCards() {
   return useQuery({
@@ -20,7 +20,7 @@ export function useCardInvoices(params?: { year?: number; month?: number }) {
 export function useCreateCard() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: Partial<Card>) =>
+    mutationFn: (payload: CardInput) =>
       api.post<Card>('/cards/', { ...payload, limit: payload.limit || null }).then((r) => r.data),
     onSuccess: () => invalidateCards(qc),
   })
@@ -35,7 +35,7 @@ function invalidateCards(qc: QueryClient) {
 export function useUpdateCard() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...payload }: Partial<Card> & { id: number }) =>
+    mutationFn: ({ id, ...payload }: CardInput & { id: number }) =>
       api
         .patch<Card>(`/cards/${id}/`, 'limit' in payload ? { ...payload, limit: payload.limit || null } : payload)
         .then((r) => r.data),

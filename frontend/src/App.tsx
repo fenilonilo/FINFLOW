@@ -7,6 +7,7 @@ import Login from '@/pages/Login'
 import Lancamentos from '@/pages/lanc/Lancamentos'
 import Importar from '@/pages/Importar'
 import Visao from '@/pages/visao/Visao'
+import Ajustes from '@/pages/ajustes/Ajustes'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -23,12 +24,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 // TODO Tasks 11-16: replace with the real pages
 const Placeholder = ({ eyebrow, title }: { eyebrow: string; title: string }) => <PageHeader eyebrow={eyebrow} title={title} />
-const SETTINGS_TABS = ['categories', 'payments', 'cards', 'fixed']
 const ACCOUNT_TABS = ['profile', 'devices']
-const SettingsTab = () => {
-  const tab = useParams().tab ?? ''
-  return SETTINGS_TABS.includes(tab) ? <Placeholder eyebrow="Ajustes" title={tab} /> : <Navigate to="/settings/categories" replace />
-}
 const AccountTab = () => {
   const tab = useParams().tab ?? ''
   return ACCOUNT_TABS.includes(tab) ? <Placeholder eyebrow="Conta" title={tab} /> : <Navigate to="/account/profile" replace />
@@ -52,7 +48,7 @@ export default function App() {
         <Route path="/import" element={<Importar />} />
         <Route path="/overview" element={<Visao />} />
         <Route path="/settings" element={<Navigate to="/settings/categories" replace />} />
-        <Route path="/settings/:tab" element={<SettingsTab />} />
+        <Route path="/settings/:tab" element={<Ajustes />} />
         <Route path="/account" element={<Navigate to="/account/profile" replace />} />
         <Route path="/account/:tab" element={<AccountTab />} />
       </Route>

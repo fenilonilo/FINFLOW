@@ -257,3 +257,50 @@ body::after {
 .ai::before { content: '✦'; color: var(--g); font-size: 10px; }
 .prev-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
 @media (prefers-reduced-motion: reduce) { .imp .ghost { animation: none; } .drop { transition: none; } }
+
+/* ---------- ajustes ---------- */
+.tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); width: max-content; max-width: 100%; margin-bottom: 16px; position: relative; }
+.tabs button { position: relative; z-index: 1; padding: 8px 14px; border-radius: 10px; border: 0; background: none; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--mu); transition: color .2s; white-space: nowrap; }
+.tabs button.on { color: var(--tx); }
+.tabs .ind { position: absolute; top: 4px; bottom: 4px; left: 4px; border-radius: 10px; background: rgba(126,224,138,.1); box-shadow: inset 0 0 0 1px rgba(126,224,138,.2); transition: left .4s var(--ease), width .4s var(--ease); }
+@media (prefers-reduced-motion: reduce) { .tabs .ind, .tabs button { transition: none; } }
+.aj { display: grid; width: max-content; max-width: 100%; }
+.aj .aj-panel { width: 0; min-width: 100%; }
+.aj .pane { animation: rise .45s var(--ease); }
+.aj .bar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.aj .rows { display: flex; flex-direction: column; }
+.aj .rw { display: flex; align-items: center; gap: 12px; padding: 11px 2px; border-top: 1px solid rgba(255,255,255,.05); font-size: 14px; }
+.aj .rw:first-child { border-top: 0; padding-top: 2px; }
+.aj .rw .ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; flex: none; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.05); }
+.aj .rw .ic.card { width: 36px; height: 24px; border-radius: 5px; border: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+.aj .rw .tt { min-width: 0; }
+.aj .rw .tt b { display: block; font-weight: 600; }
+.aj .rw .tt small { color: var(--mu); font-size: 12px; }
+.aj .rw .end { margin-left: auto; font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.aj .rw .dd { width: 36px; text-align: center; flex: none; }
+.aj .rw .dd b { display: block; font: 600 17px var(--f-num); line-height: 1; }
+.aj .rw .dd small { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--mu); }
+.aj .rw.total { font-weight: 600; }
+.aj .rw.off { opacity: .45; }
+.aj .rw.off .acts { opacity: 1; }
+.aj .rw .acts { display: flex; gap: 6px; }
+.aj .rw .acts .btn, .aj .rw > .btn { padding: 5px 11px; font-size: 12px; }
+.aj .cpane { display: flex; flex-direction: column; gap: 4px; }
+.aj .cinfo { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px 16px; border-top: 1px solid rgba(255,255,255,.06); padding-top: 16px; }
+.aj .cinfo .cn { font-family: var(--f-display); font-size: 26px; line-height: 1; }
+.aj .kvs { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, max-content); gap: 10px 30px; }
+.aj .kvs small { display: block; color: var(--mu); font-size: 11.5px; margin-bottom: 2px; }
+.aj .kvs b { font-weight: 600; font-size: 14px; white-space: nowrap; }
+.aj .cbtn { display: flex; gap: 8px; grid-column: 2; grid-row: 1; }
+.aj .cbtn .btn { padding: 8px 14px; font-size: 13px; }
+.aj .cats { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 10px; }
+.aj .cats > button { display: flex; align-items: center; gap: 10px; padding: 13px; border-radius: 14px; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.05); font-size: 14px; font-weight: 500; color: var(--tx); cursor: pointer; text-align: left; min-width: 0; transition: border-color .2s; }
+.aj .cats > button:hover { border-color: rgba(126,224,138,.25); }
+.aj .inactive-h { margin: 18px 0 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--mu); }
+@media (max-width: 1099px) {
+  .aj { width: 100%; }
+  .aj .cats { grid-template-columns: minmax(0, 1fr); }
+  .aj .kvs { grid-template-columns: repeat(2, max-content); }
+  .aj .cinfo { grid-template-columns: minmax(0, 1fr); }
+  .aj .cbtn { grid-column: 1; grid-row: auto; flex-wrap: wrap; }
+}
