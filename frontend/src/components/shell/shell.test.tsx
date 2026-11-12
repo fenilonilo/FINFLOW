@@ -4,6 +4,7 @@ import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-rou
 import AppShell, { useBodyScreen } from './AppShell'
 import MonthNav from './MonthNav'
 
+vi.mock('./ProfileCard', () => ({ default: () => null }))
 const setPeriod = vi.fn()
 vi.mock('@/contexts/PeriodContext', () => ({ usePeriod: () => ({ year: 2026, month: 12, setPeriod }) }))
 

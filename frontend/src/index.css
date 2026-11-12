@@ -62,3 +62,47 @@ body::after {
 
 @keyframes rise { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { .rise { animation: none; opacity: 1; } body::after { animation: none; } .btn { transition: none; } }
+/* cartao de perfil giratorio (FlipCard) */
+.flip { position: relative; margin-top: auto; height: 290px; border-radius: 18px; outline: none; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-y; }
+.flip.drag { cursor: grabbing; }
+.flip:focus-visible .flip-face { box-shadow: 0 0 0 2px var(--g); }
+.flip svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.flip-sh { position: absolute; inset: 12% 9% -5%; border-radius: 18px; background: rgba(0,0,0,.45); filter: blur(22px); pointer-events: none; }
+.flip-rot { position: absolute; inset: 0; transform-style: preserve-3d; }
+.flip-face { position: absolute; inset: 0; overflow: hidden; border-radius: 18px; padding: 16px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: radial-gradient(120% 90% at 0% 0%, rgba(126,224,138,.2), transparent 62%), rgba(9,16,11,.86); border: 1px solid rgba(126,224,138,.16); transition: border-color .3s; }
+.flip.on-account .flip-face { border-color: rgba(126,224,138,.45); }
+.flip-face.back { transform: rotateY(180deg); display: flex; flex-direction: column; gap: 6px; padding: 14px; }
+.flip-face.front { padding: 7px; display: flex; flex-direction: column; }
+.flip-gl { position: absolute; inset: 0; pointer-events: none; opacity: var(--sheen, 0);
+  background: radial-gradient(circle farthest-side at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.22), rgba(255,255,255,.11) 26%, rgba(255,255,255,.03) 60%, transparent); }
+.fb { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.03); color: var(--tx); font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; transition: background .2s, border-color .2s; }
+.fb svg { width: 15px; height: 15px; flex: none; }
+.fb span small { display: block; font-size: 11px; font-weight: 400; color: var(--mu); margin-top: 1px; }
+.fb::after { content: '\203A'; margin-left: auto; color: var(--mu); }
+.fb:hover { border-color: rgba(126,224,138,.3); background: rgba(126,224,138,.08); }
+.fb.out { color: var(--mu); background: none; margin-top: auto; } .fb.out::after { content: none; }
+.bk-h { display: flex; align-items: center; gap: 10px; padding: 2px 2px 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.bk-av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none; overflow: hidden; color: #d9f5dd; background: linear-gradient(135deg,#3f9a50,#1d4a26); }
+.bk-av svg { width: 17px; height: 17px; }
+.bk-av img, .pf-photo img.ph { width: 100%; height: 100%; object-fit: cover; }
+.bk-h b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 17px; line-height: 1.1; }
+.bk-h small { display: block; font-size: 11px; color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.pf-photo { position: relative; flex: 1; border-radius: 13px; overflow: hidden;
+  background: radial-gradient(85% 65% at 50% 38%, rgba(126,224,138,.24), transparent 72%), linear-gradient(180deg, #14281b, #08110a); }
+.pf-photo::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(126,224,138,.5) 1px, transparent 1.3px); background-size: 9px 9px;
+  -webkit-mask: radial-gradient(75% 55% at 50% 36%, #000, transparent 78%); mask: radial-gradient(75% 55% at 50% 36%, #000, transparent 78%); opacity: .35; }
+.pf-photo::after { content: ''; position: absolute; inset: auto 0 0; height: 58%; background: linear-gradient(transparent, rgba(4,9,5,.94)); }
+.pf-photo .sil { position: absolute; left: 50%; top: 14%; width: 88%; transform: translateX(-50%); stroke: rgba(160,240,170,.4); stroke-width: .6; }
+.pf-photo img.ph { position: absolute; inset: 0; }
+.pf-cam { position: absolute; top: 9px; right: 9px; z-index: 1; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--g); background: rgba(4,9,5,.7); border: 1px solid rgba(126,224,138,.3); }
+.pf-cam svg { width: 13px; height: 13px; }
+.pf-name { position: absolute; left: 12px; right: 12px; bottom: 11px; z-index: 1; }
+.pf-name b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 22px; line-height: 1.1; }
+.pf-name small { font-size: 11.5px; color: #cfe0d2; opacity: .8; }
+.pf-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 6px 5px; }
+.pf-foot b { display: block; font-size: 12.5px; font-weight: 600; }
+.pf-foot small { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--mu); }
+.pf-foot small::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--g); box-shadow: 0 0 8px var(--g); }
+.fpill { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); }
+.fpill svg { width: 12px; height: 12px; }

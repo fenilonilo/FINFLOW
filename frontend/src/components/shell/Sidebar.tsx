@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import ProfileCard from './ProfileCard'
 
 const ITEMS = [
   { to: '/', label: 'Lançamentos', key: '1', end: true, d: 'M4 6h16M4 12h16M4 18h10' },
@@ -34,8 +35,7 @@ export default function Sidebar() {
           <kbd className="ml-auto rounded-[5px] border border-white/[.08] px-[5px] py-px font-sans text-[10px] font-medium text-mu2">{i.key}</kbd>
         </NavLink>
       ))}
-      {/* TODO Task 9: <ProfileCard /> */}
-      <div data-testid="profile-slot" className="mt-auto h-[290px] w-[206px]" />
+      <ProfileCard />
     </nav>
   )
 }
