@@ -26,12 +26,14 @@ export default function ConfirmDialog({
         <p className="mt-2 text-sm text-text-muted">{description}</p>
         <div className="mt-6 flex justify-end gap-3">
           <button
+            type="button"
             onClick={onCancel}
             className="rounded-xl px-4 py-2 text-sm text-text-muted hover:bg-elevated transition-colors"
           >
             Cancelar
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             className="rounded-xl bg-accent/20 px-4 py-2 text-sm font-medium text-accent hover:bg-accent/30 transition-colors"
           >

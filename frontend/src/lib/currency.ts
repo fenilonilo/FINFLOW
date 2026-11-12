@@ -7,14 +7,21 @@ export function formatMoney(value: string | number): string {
 }
 
 export function parseMoney(value: string): string {
-  // Returns clean decimal string "1234.56"
-  // Handle pt-BR format: "R$ 1.234,56" → "1234.56"
-  // Step 1: remove currency symbol and spaces
-  const stripped = value.replace(/[^\d,.]/g, '')
-  // Step 2: if comma is the decimal separator (pt-BR), remove dots (thousands sep) and swap comma
-  if (stripped.includes(',')) {
-    return parseFloat(stripped.replace(/\./g, '').replace(',', '.')).toFixed(2)
+  // pt-BR "R$ 1.234,56", "1.234" (milhar), ou decimal simples "1234.5" -> "1234.56". Sem float.
+  const s = value.replace(/[^\d,.]/g, '')
+  let int: string
+  let frac = ''
+  const comma = s.lastIndexOf(',')
+  if (comma >= 0) {
+    int = s.slice(0, comma).replace(/\./g, '')
+    frac = s.slice(comma + 1).replace(/\./g, '')
+  } else {
+    const dot = s.lastIndexOf('.')
+    const after = s.length - dot - 1
+    if (dot >= 0 && (s.indexOf('.') === dot ? after !== 3 : false)) {
+      int = s.slice(0, dot)
+      frac = s.slice(dot + 1)
+    } else int = s.replace(/\./g, '')
   }
-  // Step 3: plain decimal string
-  return parseFloat(stripped).toFixed(2)
+  return `${int.replace(/^0+(?=\d)/, '') || '0'}.${frac.slice(0, 2).padEnd(2, '0')}`
 }

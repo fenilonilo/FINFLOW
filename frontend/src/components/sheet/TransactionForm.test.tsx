@@ -23,6 +23,7 @@ const pm = (id: number, name: string, extra = {}) => ({
   ...extra,
 })
 let posted: Record<string, unknown> | null = null
+const calls: string[] = []
 const server = setupServer(
   http.get('*/api/v1/categories/', () =>
     HttpResponse.json(
@@ -52,6 +53,14 @@ const server = setupServer(
       ]),
     ),
   ),
+  http.patch('*/api/v1/transactions/:id/', () => {
+    calls.push('PATCH')
+    return HttpResponse.json({ id: 5 })
+  }),
+  http.delete('*/api/v1/transactions/:id/', () => {
+    calls.push('DELETE')
+    return new HttpResponse(null, { status: 204 })
+  }),
   http.post('*/api/v1/transactions/', async ({ request }) => {
     posted = (await request.json()) as Record<string, unknown>
     return HttpResponse.json({ id: 99, ...posted }, { status: 201 })
@@ -61,8 +70,29 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => {
   server.resetHandlers()
   posted = null
+  calls.length = 0
 })
 afterAll(() => server.close())
+
+const editTx = {
+  id: 5,
+  type: 'expense',
+  kind: 'variable',
+  category: null,
+  category_detail: null,
+  description: 'X',
+  amount: '10.00',
+  date: '2026-11-03',
+  year: 2026,
+  month: 11,
+  payment_method: 2,
+  payment_method_detail: null,
+  is_paid: false,
+  recurring_source: null,
+  is_fixed: false,
+  installment_current: null,
+  installment_total: null,
+} as Transaction
 
 function wrap(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -103,29 +133,49 @@ describe('TransactionForm', () => {
   })
 
   it('modo edição mostra Excluir e oculta parcelas', async () => {
-    const tx = {
-      id: 5,
-      type: 'expense',
-      kind: 'variable',
-      category: null,
-      category_detail: null,
-      description: 'X',
-      amount: '10.00',
-      date: '2026-11-03',
-      year: 2026,
-      month: 11,
-      payment_method: 2,
-      payment_method_detail: null,
-      is_paid: false,
-      recurring_source: null,
-      is_fixed: false,
-      installment_current: null,
-      installment_total: null,
-    } as Transaction
-    wrap(<TransactionForm tx={tx} onDone={vi.fn()} />)
+    wrap(<TransactionForm tx={editTx} onDone={vi.fn()} />)
     expect(screen.getByText('Excluir')).toBeInTheDocument()
     await screen.findByText('Nubank crédito')
     expect(screen.queryByText('Parcelas')).toBeNull()
+    expect(screen.getByText('Editar lançamento')).toBeInTheDocument()
+  })
+
+  it('create mostra eyebrow Novo lançamento', () => {
+    wrap(<TransactionForm onDone={vi.fn()} />)
+    expect(screen.getByText('Novo lançamento')).toBeInTheDocument()
+  })
+
+  it('Excluir -> Cancelar não envia nada; confirmar só faz DELETE', async () => {
+    wrap(<TransactionForm tx={editTx} onDone={vi.fn()} />)
+    await userEvent.click(screen.getByText('Excluir'))
+    await userEvent.click(screen.getByText('Cancelar'))
+    await new Promise((r) => setTimeout(r, 50))
+    expect(calls).toEqual([])
+    await userEvent.click(screen.getByText('Excluir'))
+    await userEvent.click(screen.getAllByText('Excluir')[1])
+    await waitFor(() => expect(calls).toEqual(['DELETE']))
+  })
+
+  it('crédito + outro vazio, trocar para Pix, salva sem parcelas', async () => {
+    wrap(<TransactionForm onDone={vi.fn()} />)
+    await userEvent.click(await screen.findByText('Nubank crédito'))
+    await userEvent.click(screen.getByText('outro'))
+    await userEvent.clear(screen.getByLabelText('Número de parcelas'))
+    await userEvent.type(screen.getByLabelText('Valor'), '10')
+    await userEvent.type(screen.getByLabelText('Descrição'), 'A')
+    await userEvent.click(screen.getByText('Salvar lançamento'))
+    expect(await screen.findByText('Informe as parcelas')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Pix'))
+    await userEvent.click(screen.getByText('Salvar lançamento'))
+    await waitFor(() => expect(posted).toMatchObject({ amount: '10.00', payment_method: 1 }))
+    expect(posted).not.toHaveProperty('installments')
+  })
+
+  it('compra após o fechamento usa o texto do protótipo', async () => {
+    wrap(<TransactionForm onDone={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Data'), { target: { value: '2026-11-12' } })
+    await userEvent.click(await screen.findByText('Nubank crédito'))
+    expect(screen.getByText(/Compra no crédito depois do fechamento \(dia 5\)/)).toBeInTheDocument()
   })
 })
 

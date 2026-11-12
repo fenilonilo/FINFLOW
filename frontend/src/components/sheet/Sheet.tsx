@@ -15,7 +15,8 @@ export default function Sheet({ open, onClose, title, children }: SheetProps) {
   useEffect(() => {
     if (!open) return
     const prev = document.activeElement as HTMLElement | null
-    ref.current?.querySelector<HTMLElement>('input')?.focus()
+    const el = ref.current
+    ;(el?.querySelector<HTMLElement>(FOCUSABLE) ?? el)?.focus()
     return () => prev?.focus()
   }, [open])
 
@@ -51,6 +52,7 @@ export default function Sheet({ open, onClose, title, children }: SheetProps) {
         aria-modal="true"
         aria-label={title}
         className="sheet"
+        tabIndex={-1}
         onKeyDown={onKeyDown}
       >
         <button
@@ -61,7 +63,6 @@ export default function Sheet({ open, onClose, title, children }: SheetProps) {
         >
           ✕
         </button>
-        <div className="eyebrow">{title}</div>
         {children}
       </aside>
     </>

@@ -12,6 +12,7 @@ import { usePeriod } from '@/contexts/PeriodContext'
 import { invoiceMonthLabel } from '@/lib/cardCycle'
 import { parseMoney } from '@/lib/currency'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { IconComponent } from '@/components/ui/IconPicker'
 import { toast } from '@/components/ui/Toast'
 import type { Transaction } from '@/types/models'
 
@@ -23,9 +24,12 @@ const schema = z.object({
   category: z.number().nullable(),
   payment_method: z.number().nullable(),
   is_paid: z.boolean(),
-  installments: z.number().int().min(1).max(48),
+  installments: z.preprocess(
+    (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
+    z.number().int().min(1).max(48).optional(),
+  ),
 })
-type FormData = z.infer<typeof schema>
+type FormData = z.output<typeof schema>
 
 const PRESETS = [1, 3, 6, 10]
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -66,6 +70,7 @@ export default function TransactionForm({ tx, onDone }: Props) {
     handleSubmit,
     watch,
     setValue,
+    setError,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -111,10 +116,14 @@ export default function TransactionForm({ tx, onDone }: Props) {
       payment_method: d.payment_method,
       is_paid: d.is_paid,
     }
+    if (isCredit && !tx && !d.installments) {
+      setError('installments', { message: 'Informe as parcelas' })
+      return
+    }
     try {
       if (tx) await update.mutateAsync({ id: tx.id, ...payload })
       else {
-        if (isCredit && d.installments > 1) payload.installments = d.installments
+        if (isCredit && d.installments && d.installments > 1) payload.installments = d.installments
         await create.mutateAsync(payload)
       }
       toast(tx ? 'Lançamento atualizado' : 'Lançamento salvo', 'success')
@@ -135,15 +144,18 @@ export default function TransactionForm({ tx, onDone }: Props) {
   }
 
   return (
+    <>
+    <div className="eyebrow">{tx ? 'Editar lançamento' : 'Novo lançamento'}</div>
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div className="mb-[18px] mt-4 flex items-baseline gap-2 border-b border-[var(--line)] pb-3.5 pt-1.5 text-[50px] font-medium tabular-nums tracking-tight">
+      <div className="mb-[18px] mt-4 flex items-baseline gap-2 border-b border-[var(--line)] pb-3.5 pt-1.5 text-[50px] font-medium tracking-tight [font-variant-numeric:tabular-nums_lining-nums]">
         <span className="text-xl text-[var(--mu)]">R$</span>
         <input
           aria-label="Valor"
           inputMode="decimal"
           placeholder="0,00"
           autoComplete="off"
-          className="w-full bg-transparent outline-none"
+          className="w-full rounded-lg bg-transparent outline-none focus:shadow-[0_0_0_4px_rgba(126,224,138,.08)]"
+          style={{ fontFamily: 'var(--f-num)' }}
           {...register('amount')}
         />
       </div>
@@ -194,7 +206,7 @@ export default function TransactionForm({ tx, onDone }: Props) {
               className={pillCls(categoryId === c.id)}
               onClick={() => setValue('category', categoryId === c.id ? null : c.id)}
             >
-              {c.name}
+              {c.icon && <IconComponent name={c.icon} size={13} />} {c.name}
             </button>
           ))}
       </div>
@@ -209,7 +221,11 @@ export default function TransactionForm({ tx, onDone }: Props) {
               type="button"
               aria-pressed={pmId === p.id}
               className={pillCls(pmId === p.id)}
-              onClick={() => setValue('payment_method', pmId === p.id ? null : p.id)}
+              onClick={() => {
+                setValue('payment_method', pmId === p.id ? null : p.id)
+                setValue('installments', 1)
+                setCustom(false)
+              }}
             >
               {p.name}
             </button>
@@ -218,7 +234,10 @@ export default function TransactionForm({ tx, onDone }: Props) {
 
       {isCredit && pm?.card_detail && (
         <div className="mb-4 mt-1 rounded-xl border border-[rgba(91,143,199,.25)] bg-[rgba(91,143,199,.1)] px-3 py-2.5 text-[12.5px] text-[#cfe7d2]">
-          Compra no crédito (fechamento dia {pm.card_detail.closing_day}) —{' '}
+          {Number(date.slice(8, 10)) > pm.card_detail.closing_day
+            ? `Compra no crédito depois do fechamento (dia ${pm.card_detail.closing_day})`
+            : `Compra no crédito (fechamento dia ${pm.card_detail.closing_day})`}{' '}
+          —{' '}
           <b>cai na fatura de {invoiceMonthLabel(pm.card_detail.closing_day, date)}</b>.
         </div>
       )}
@@ -249,7 +268,10 @@ export default function TransactionForm({ tx, onDone }: Props) {
               type="button"
               aria-pressed={custom}
               className={pillCls(custom)}
-              onClick={() => setCustom(true)}
+              onClick={() => {
+                setCustom(true)
+                setValue('installments', 2)
+              }}
             >
               outro
             </button>
@@ -264,6 +286,11 @@ export default function TransactionForm({ tx, onDone }: Props) {
               />
             )}
           </div>
+          {errors.installments && (
+            <p role="alert" className="-mt-2 mb-3 text-xs text-danger">
+              {errors.installments.message}
+            </p>
+          )}
         </>
       )}
 
@@ -283,6 +310,7 @@ export default function TransactionForm({ tx, onDone }: Props) {
           Excluir
         </button>
       )}
+    </form>
       <ConfirmDialog
         open={confirmDel}
         title="Excluir lançamento"
@@ -294,6 +322,6 @@ export default function TransactionForm({ tx, onDone }: Props) {
         }}
         onCancel={() => setConfirmDel(false)}
       />
-    </form>
+    </>
   )
 }
