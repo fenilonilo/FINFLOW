@@ -4,6 +4,14 @@ import Sidebar from './Sidebar'
 
 const GO: Record<string, string> = { '1': '/', '2': '/import', '3': '/overview', '4': '/settings' }
 
+export function useBodyScreen() {
+  const { pathname } = useLocation()
+  const screen = screenOf(pathname)
+  useEffect(() => {
+    document.body.dataset.screen = screen
+  }, [screen])
+}
+
 function screenOf(path: string) {
   if (path.startsWith('/import')) return 'imp'
   if (path.startsWith('/overview')) return 'visao'
@@ -17,11 +25,6 @@ export default function AppShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const screen = screenOf(pathname)
-
-  useEffect(() => {
-    document.body.dataset.screen = screen
-  }, [screen])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -29,11 +32,9 @@ export default function AppShell() {
       const t = e.target as HTMLElement | null
       if (t && (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable)) return
       if (GO[e.key]) navigate(GO[e.key])
-      else if (e.key.toLowerCase() === 'n' && pathname === '/') setParams({ new: '1' })
+      else if (e.key.toLowerCase() === 'n' && pathname === '/') setParams((p) => { const n = new URLSearchParams(p); n.set('new', '1'); return n }, { replace: true })
       else if (e.key === 'Escape' && params.has('new')) {
-        const p = new URLSearchParams(params)
-        p.delete('new')
-        setParams(p)
+        setParams((p) => { const n = new URLSearchParams(p); n.delete('new'); return n }, { replace: true })
       }
     }
     window.addEventListener('keydown', onKey)

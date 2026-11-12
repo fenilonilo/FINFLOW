@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
-import AppShell from './AppShell'
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import AppShell, { useBodyScreen } from './AppShell'
 import MonthNav from './MonthNav'
 
 const setPeriod = vi.fn()
@@ -36,7 +36,6 @@ describe('AppShell shortcuts', () => {
     setup()
     fireEvent.keyDown(window, { key: '2' })
     expect(screen.getByTestId('loc').textContent).toBe('/import')
-    expect(document.body.dataset.screen).toBe('imp')
   })
   it('pressing 2 inside an input does nothing', () => {
     setup()
@@ -57,5 +56,38 @@ describe('MonthNav', () => {
     render(<MonthNav />)
     fireEvent.click(screen.getByLabelText('Próximo mês'))
     expect(setPeriod).toHaveBeenCalledWith(2027, 1)
+  })
+})
+
+describe('useBodyScreen', () => {
+  function Probe() {
+    useBodyScreen()
+    return null
+  }
+  it('sets login and follows navigation', () => {
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <Probe />
+        <Routes>
+          <Route path="*" element={<Loc />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(document.body.dataset.screen).toBe('login')
+  })
+  it('updates on / -> /login', () => {
+    function Go() {
+      const nav = useNavigate()
+      return <button onClick={() => nav('/login')}>go</button>
+    }
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Probe />
+        <Go />
+      </MemoryRouter>,
+    )
+    expect(document.body.dataset.screen).toBe('lanc')
+    fireEvent.click(screen.getByText('go'))
+    expect(document.body.dataset.screen).toBe('login')
   })
 })

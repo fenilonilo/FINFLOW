@@ -31,7 +31,7 @@ export default function Sidebar() {
             <path d={i.d} />
           </svg>
           {i.label}
-          <kbd className="ml-auto rounded-[5px] border border-white/[.08] px-[5px] py-px font-sans text-[10px] font-medium text-mu">{i.key}</kbd>
+          <kbd className="ml-auto rounded-[5px] border border-white/[.08] px-[5px] py-px font-sans text-[10px] font-medium text-mu2">{i.key}</kbd>
         </NavLink>
       ))}
       {/* TODO Task 9: <ProfileCard /> */}
