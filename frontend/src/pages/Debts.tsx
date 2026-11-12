@@ -4,7 +4,7 @@ import MoneyText from '@/components/ui/MoneyText'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { toast } from '@/components/ui/Toast'
-import type { Debt, PaginatedResponse } from '@/types/api'
+import type { Debt, PaginatedResponse } from '@/types/models'
 import { DollarSign, ArrowRight, CheckCircle2 } from 'lucide-react'
 
 const DEBT_TYPE_LABELS: Record<string, string> = {

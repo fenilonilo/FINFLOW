@@ -4,11 +4,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import Transactions from '@/pages/Transactions'
-import RecurringExpenses from '@/pages/RecurringExpenses'
-import Acquisitions from '@/pages/Acquisitions'
-import Investments from '@/pages/Investments'
-import Cards from '@/pages/Cards'
-import Debts from '@/pages/Debts'
+import Import from '@/pages/Import'
 import Analytics from '@/pages/Analytics'
 import Settings from '@/pages/Settings'
 
@@ -39,11 +35,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="transactions" element={<Transactions />} />
-        <Route path="recurring" element={<RecurringExpenses />} />
-        <Route path="acquisitions" element={<Acquisitions />} />
-        <Route path="investments" element={<Investments />} />
-        <Route path="cards" element={<Cards />} />
-        <Route path="debts" element={<Debts />} />
+        <Route path="import" element={<Import />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
       </Route>

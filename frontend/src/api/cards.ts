@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Card, CardInvoice, PaginatedResponse } from '@/types/api'
+import type { Card, CardInvoice, PaginatedResponse } from '@/types/models'
 
 export function useCards() {
   return useQuery({

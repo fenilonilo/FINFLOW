@@ -38,9 +38,7 @@ def _add_month(user, year, month, income, expense, invested):
             is_paid=True,
         )
     if invested:
-        InvestmentFactory(
-            user=user, year=year, month=month, amount=Decimal(invested)
-        )
+        InvestmentFactory(user=user, year=year, month=month, amount=Decimal(invested))
 
 
 def test_baseline_no_movement_returns_zero_score():

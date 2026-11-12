@@ -12,7 +12,9 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ColorPicker from '@/components/ui/ColorPicker'
 import IconPicker, { IconComponent } from '@/components/ui/IconPicker'
 import { toast } from '@/components/ui/Toast'
-import type { Category, PaymentMethod, PaginatedResponse } from '@/types/api'
+import Cards from '@/pages/Cards'
+import MoneyText from '@/components/ui/MoneyText'
+import type { Category, PaymentMethod, RecurringExpense, PaginatedResponse } from '@/types/models'
 import {
   Pencil,
   Archive,
@@ -20,10 +22,12 @@ import {
   Tag,
   CreditCard,
   Monitor,
+  Trash2,
+  Repeat,
   User,
 } from 'lucide-react'
 
-type Tab = 'categories' | 'payment-methods' | 'sessions' | 'profile'
+type Tab = 'categories' | 'payment-methods' | 'cards' | 'fixed' | 'sessions' | 'profile'
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Nome obrigatório'),
@@ -46,6 +50,78 @@ interface Session {
   device: string
   last_seen: string
   is_current: boolean
+}
+
+function FixedList() {
+  const queryClient = useQueryClient()
+  const [deleteId, setDeleteId] = useState<number | null>(null)
+  const { data, isLoading } = useQuery<PaginatedResponse<RecurringExpense>>({
+    queryKey: ['recurring-expenses'],
+    queryFn: () =>
+      api.get<PaginatedResponse<RecurringExpense>>('/recurring-expenses/').then((r) => r.data),
+  })
+  const { data: cards } = useQuery<PaginatedResponse<{ id: number; name: string }>>({
+    queryKey: ['cards'],
+    queryFn: () => api.get('/cards/').then((r) => r.data),
+  })
+  const del = useMutation({
+    mutationFn: (id: number) => api.delete(`/recurring-expenses/${id}/`),
+    onSuccess: () => {
+      toast('Fixo removido', 'success')
+      queryClient.invalidateQueries({ queryKey: ['recurring-expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['summary'] })
+      setDeleteId(null)
+    },
+    onError: () => toast('Erro ao remover', 'error'),
+  })
+  if (isLoading) return <Skeleton className="h-40" />
+  if (!data?.results.length)
+    return <EmptyState icon={<Repeat size={32} />} title="Nenhum fixo cadastrado" description="Marque 'Fixo' ao criar um lançamento" />
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border-subtle bg-surface">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border-subtle text-xs text-text-muted">
+            <th className="px-4 py-3 text-left font-medium">Tipo</th>
+            <th className="px-4 py-3 text-left font-medium">Descrição</th>
+            <th className="px-4 py-3 text-right font-medium">Valor atual</th>
+            <th className="px-4 py-3 text-center font-medium">Dia</th>
+            <th className="px-4 py-3 text-left font-medium">Cartão</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border-subtle">
+          {data.results.map((r) => (
+            <tr key={r.id}>
+              <td className="px-4 py-3 text-xs text-text-muted">{r.type === 'income' ? 'Entrada' : 'Saída'}</td>
+              <td className="px-4 py-3 text-text-primary">{r.description}</td>
+              <td className="px-4 py-3 text-right">
+                {r.default_amount ? <MoneyText value={r.default_amount} positive={r.type === 'income'} /> : '—'}
+              </td>
+              <td className="px-4 py-3 text-center text-text-muted">{r.due_day}</td>
+              <td className="px-4 py-3 text-xs text-text-muted">
+                {cards?.results.find((c) => c.id === r.card)?.name ?? '—'}
+              </td>
+              <td className="px-4 py-3 text-center">
+                <button onClick={() => setDeleteId(r.id)} className="text-text-muted hover:text-danger transition-colors">
+                  <Trash2 size={15} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="Remover fixo"
+        description="O fixo deixa de ser gerado nos próximos meses."
+        confirmLabel="Remover"
+        onConfirm={() => deleteId !== null && del.mutate(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
+    </div>
+  )
 }
 
 function CategoryModal({
@@ -359,6 +435,8 @@ export default function Settings() {
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'categories', label: 'Categorias', icon: <Tag size={15} /> },
     { id: 'payment-methods', label: 'Formas de Pagamento', icon: <CreditCard size={15} /> },
+    { id: 'cards', label: 'Cartões', icon: <CreditCard size={15} /> },
+    { id: 'fixed', label: 'Fixos', icon: <Repeat size={15} /> },
     { id: 'sessions', label: 'Dispositivos', icon: <Monitor size={15} /> },
     { id: 'profile', label: 'Perfil', icon: <User size={15} /> },
   ]
@@ -565,6 +643,9 @@ export default function Settings() {
           )}
         </div>
       )}
+
+      {activeTab === 'cards' && <Cards />}
+      {activeTab === 'fixed' && <FixedList />}
 
       {/* Sessions Tab */}
       {activeTab === 'sessions' && (

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Investment, PaginatedResponse } from '@/types/api'
+import type { Investment, PaginatedResponse } from '@/types/models'
 
 export function useInvestments(params?: { year?: number; month?: number }) {
   return useQuery({

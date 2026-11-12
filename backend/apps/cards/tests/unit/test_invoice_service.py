@@ -21,9 +21,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def env():
     user = UserFactory()
-    card = CardFactory(
-        user=user, closing_day=3, due_day=10, limit=Decimal("5000.00")
-    )
+    card = CardFactory(user=user, closing_day=3, due_day=10, limit=Decimal("5000.00"))
     pm = PaymentMethodFactory(user=user, card=card, card_function=CardFunction.CREDIT)
     category = CategoryFactory(user=user)
     return user, card, pm, category
@@ -114,9 +112,7 @@ def test_unpay_invoice_reverts_debt_and_transactions(env):
     service.set_invoice_paid(user.id, card.id, 2026, 7, is_paid=False)
     debt = Debt.objects.get(user=user)
     assert debt.installment_current == 0
-    assert (
-        Transaction.objects.filter(debt=debt, is_paid=True).count() == 0
-    )
+    assert Transaction.objects.filter(debt=debt, is_paid=True).count() == 0
 
 
 def test_divergent_when_retroactive_purchase_after_payment(env):

@@ -168,12 +168,8 @@ def test_monthly_summary_2025(
     user = _get_user()
     income, expense, invested, balance = _summary(user, year, month)
     assert income == exp_income, f"{year}/{month}: income {income} != {exp_income}"
-    assert expense == exp_expense, (
-        f"{year}/{month}: expense {expense} != {exp_expense}"
-    )
+    assert expense == exp_expense, f"{year}/{month}: expense {expense} != {exp_expense}"
     assert invested == exp_invested, (
         f"{year}/{month}: invested {invested} != {exp_invested}"
     )
-    assert balance == exp_balance, (
-        f"{year}/{month}: balance {balance} != {exp_balance}"
-    )
+    assert balance == exp_balance, f"{year}/{month}: balance {balance} != {exp_balance}"

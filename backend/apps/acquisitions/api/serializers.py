@@ -53,9 +53,7 @@ class SimulateRequestSerializer(serializers.Serializer):
     acquisition_type = serializers.ChoiceField(
         choices=["cash", "installment", "financing", "consortium"]
     )
-    down_payment = serializers.DecimalField(
-        max_digits=12, decimal_places=2, default=0
-    )
+    down_payment = serializers.DecimalField(max_digits=12, decimal_places=2, default=0)
     installments_count = serializers.IntegerField(required=False, allow_null=True)
     monthly_interest_rate = serializers.DecimalField(
         max_digits=7, decimal_places=4, required=False, allow_null=True

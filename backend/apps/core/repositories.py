@@ -12,13 +12,16 @@ class CategoryRepository:
             raise NotFoundError(f"Category {category_id} not found")
 
     @staticmethod
-    def list_by_user(
-        user_id: int, include_archived: bool = False
-    ) -> list[Category]:
+    def list_by_user(user_id: int, include_archived: bool = False) -> list[Category]:
         qs = Category.objects.filter(user_id=user_id)
         if not include_archived:
             qs = qs.filter(is_archived=False)
         return list(qs)
+
+    @staticmethod
+    def create_named(user_id: int, name: str) -> Category:
+        cat, _ = Category.objects.get_or_create(user_id=user_id, name=name)
+        return cat
 
     @staticmethod
     def transaction_count(category_id: int) -> int:

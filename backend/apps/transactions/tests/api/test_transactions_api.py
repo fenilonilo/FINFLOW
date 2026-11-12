@@ -1,4 +1,3 @@
-
 import pytest
 
 from apps.common.factories import (
@@ -67,6 +66,7 @@ class TestTransactionAPI:
 
     def test_transaction_list_requires_auth(self):
         from rest_framework.test import APIClient
+
         client = APIClient()
         assert client.get("/api/v1/transactions/").status_code == 401
 

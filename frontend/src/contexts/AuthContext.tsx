@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { api, setAccessToken } from '@/api/client'
-import type { User } from '@/types/api'
+import type { User } from '@/types/models'
 
 interface AuthContextValue {
   user: User | null

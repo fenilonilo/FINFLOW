@@ -1,0 +1,7 @@
+Extrato Conta Corrente
+Conta;12345
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+05/11/2026;Pix enviado;Padaria Joao;-12,50;100,00
+10/11/2026;Pix recebido;Cliente ABC;8.000,00;8100,00
+17/11/2026;Compra;Spotify;-13,00;8087,00

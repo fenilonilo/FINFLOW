@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { User } from '@/types/api'
+import type { User } from '@/types/models'
 
 export interface TokenResponse {
   access: string

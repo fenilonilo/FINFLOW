@@ -43,9 +43,7 @@ def test_update_card_renames_and_propagates():
     user = UserFactory()
     card = CardService().create_card(user.id, _dto())
     CardService().update_card(card.id, user.id, _dto(name="Inter", color="#ff7a00"))
-    names = set(
-        PaymentMethod.objects.filter(card=card).values_list("name", flat=True)
-    )
+    names = set(PaymentMethod.objects.filter(card=card).values_list("name", flat=True))
     assert names == {"Inter Crédito", "Inter Débito"}
 
 
@@ -65,9 +63,7 @@ def test_update_card_removing_function_archives_it():
 def test_delete_card_archives_and_detaches_payment_methods():
     user = UserFactory()
     card = CardService().create_card(user.id, _dto())
-    pm_ids = list(
-        PaymentMethod.objects.filter(card=card).values_list("id", flat=True)
-    )
+    pm_ids = list(PaymentMethod.objects.filter(card=card).values_list("id", flat=True))
     CardService().delete_card(card.id, user.id)
     for pm in PaymentMethod.objects.filter(id__in=pm_ids):
         assert pm.is_archived is True

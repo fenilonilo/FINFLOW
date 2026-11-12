@@ -9,9 +9,7 @@ class Card(models.Model):
     color = models.CharField(max_length=7, default="#1a1a1a")
     closing_day = models.PositiveSmallIntegerField()
     due_day = models.PositiveSmallIntegerField()
-    limit = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True
-    )
+    limit = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

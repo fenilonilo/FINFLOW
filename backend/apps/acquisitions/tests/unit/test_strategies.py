@@ -130,12 +130,8 @@ def test_consortium_distributes_admin_fee_across_installments():
 
 
 def test_factory_routes_financing_to_price_and_sac():
-    assert isinstance(
-        AmortizationFactory.for_type("financing", "price"), PriceStrategy
-    )
-    assert isinstance(
-        AmortizationFactory.for_type("financing", "sac"), SacStrategy
-    )
+    assert isinstance(AmortizationFactory.for_type("financing", "price"), PriceStrategy)
+    assert isinstance(AmortizationFactory.for_type("financing", "sac"), SacStrategy)
     assert isinstance(
         AmortizationFactory.for_type("installment", "none"), NoInterestStrategy
     )

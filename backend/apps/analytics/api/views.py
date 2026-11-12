@@ -9,13 +9,17 @@ from apps.analytics.services import CategoryTrendsService, FinancialHealthServic
 from apps.investments.repositories import InvestmentRepository
 from apps.transactions.models import Transaction, TransactionType
 from apps.transactions.repositories import TransactionRepository
+from apps.transactions.services import RecurringExpenseService
 
 
 class YearlyAnalyticsView(APIView):
     def get(self, request):
         year = int(request.query_params.get("year", datetime.date.today().year))
         months = []
+        today = datetime.date.today()
         for month in range(1, 13):
+            if (year, month) <= (today.year, today.month):
+                RecurringExpenseService().ensure_month(request.user.id, year, month)
             income = TransactionRepository.sum_by_type(
                 request.user.id, year, month, TransactionType.INCOME
             )
@@ -39,6 +43,7 @@ class HealthScoreView(APIView):
     def get(self, request):
         year = int(request.query_params.get("year", datetime.date.today().year))
         month = int(request.query_params.get("month", datetime.date.today().month))
+        RecurringExpenseService().ensure_month(request.user.id, year, month)
         health = FinancialHealthService().baseline(request.user.id, year, month)
         return Response(
             {

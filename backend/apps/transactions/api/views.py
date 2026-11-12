@@ -1,13 +1,19 @@
+import datetime
+
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.common.dtos import CreateTransactionDTO
 from apps.transactions.api.serializers import (
     DebtSerializer,
     GenerateVariableItemSerializer,
     RecurringExpenseSerializer,
+    StatementImportSerializer,
     TransactionSerializer,
     _serialize_summary,
 )
@@ -15,6 +21,7 @@ from apps.transactions.models import Debt, RecurringExpense, Transaction
 from apps.transactions.services import (
     MonthSummaryService,
     RecurringExpenseService,
+    StatementImportService,
     TransactionService,
 )
 
@@ -64,16 +71,25 @@ class TransactionViewSet(viewsets.ModelViewSet):
         else:
             serializer.instance = TransactionService().create(dto)
 
+    def list(self, request, *args, **kwargs):
+        year = request.query_params.get("year")
+        month = request.query_params.get("month")
+        if year and month:
+            RecurringExpenseService().ensure_month(
+                request.user.id, int(year), int(month)
+            )
+        return super().list(request, *args, **kwargs)
+
     def perform_update(self, serializer):
-        serializer.validated_data.pop("installments", None)
-        tx = serializer.save()
-        year, month = TransactionService().resolve_competence(
-            self.request.user.id, tx.payment_method_id, tx.date
+        data = serializer.validated_data
+        data.pop("installments", None)
+        for rel in ("category", "payment_method"):
+            if rel in data:
+                obj = data.pop(rel)
+                data[f"{rel}_id"] = obj.id if obj else None
+        serializer.instance = TransactionService().update(
+            serializer.instance.id, self.request.user.id, data
         )
-        if (tx.year, tx.month) != (year, month):
-            tx.year = year
-            tx.month = month
-            tx.save(update_fields=["year", "month"])
 
     @action(detail=True, methods=["post"], url_path="toggle-paid")
     def toggle_paid(self, request, pk=None):
@@ -90,7 +106,17 @@ class RecurringExpenseViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        start = serializer.validated_data.get("start_date")
+        start = start or datetime.date.today().replace(day=1)
+        serializer.save(user=self.request.user, start_date=start)
+        RecurringExpenseService().ensure_month(
+            self.request.user.id, start.year, start.month
+        )
+
+    def perform_destroy(self, instance):
+        RecurringExpenseService().delete_template(
+            instance.id, self.request.user.id, datetime.date.today()
+        )
 
 
 class DebtViewSet(viewsets.ModelViewSet):
@@ -122,6 +148,7 @@ class DebtViewSet(viewsets.ModelViewSet):
 
 class MonthSummaryView(viewsets.ViewSet):
     def retrieve(self, request, year=None, month=None):
+        RecurringExpenseService().ensure_month(request.user.id, int(year), int(month))
         summary = MonthSummaryService().get_summary(
             request.user.id, int(year), int(month)
         )
@@ -168,3 +195,23 @@ class GenerateVariablesView(viewsets.ViewSet):
             {"created": result.created, "skipped": result.skipped},
             status=status.HTTP_200_OK,
         )
+
+
+class StatementImportView(APIView):
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(request=StatementImportSerializer, responses={201: dict})
+    def post(self, request):
+        s = StatementImportSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        d = s.validated_data
+        result = StatementImportService().import_file(
+            request.user.id,
+            d["file"].read(),
+            d["file"].name,
+            d["card_id"],
+            d["kind"],
+            d.get("year"),
+            d.get("month"),
+        )
+        return Response(result, status=status.HTTP_201_CREATED)

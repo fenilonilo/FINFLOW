@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { SimulationResult, PaginatedResponse } from '@/types/api'
+import type { SimulationResult, PaginatedResponse } from '@/types/models'
 
 export interface AcquisitionItem {
   id: number

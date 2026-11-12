@@ -15,16 +15,20 @@ class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
         fields = [
-            "id", "name", "color", "closing_day", "due_day",
-            "limit", "functions", "active_functions",
+            "id",
+            "name",
+            "color",
+            "closing_day",
+            "due_day",
+            "limit",
+            "functions",
+            "active_functions",
         ]
         read_only_fields = ["id", "active_functions"]
 
     def get_active_functions(self, obj):
         return [
-            pm.card_function
-            for pm in obj.payment_methods.all()
-            if not pm.is_archived
+            pm.card_function for pm in obj.payment_methods.all() if not pm.is_archived
         ]
 
 

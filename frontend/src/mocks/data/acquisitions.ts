@@ -1,4 +1,4 @@
-import type { SimulationResult } from '@/types/api'
+import type { SimulationResult } from '@/types/models'
 
 const mockHealth = {
   avg_monthly_income: '8245.37',

@@ -101,6 +101,7 @@ class CreateTransactionDTO:
     recurring_source_id: int | None = None
     installment_current: int | None = None
     installment_total: int | None = None
+    import_key: str | None = None
 
 
 @dataclass

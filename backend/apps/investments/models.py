@@ -24,9 +24,7 @@ class InvestmentGoal(models.Model):
 
 
 class Investment(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="investments"
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="investments")
     year = models.PositiveIntegerField()
     month = models.PositiveSmallIntegerField()
     date = models.DateField()

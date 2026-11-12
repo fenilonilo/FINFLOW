@@ -25,9 +25,7 @@ def _round2(value: Decimal) -> Decimal:
 
 
 class AmortizationStrategy(Protocol):
-    def build_schedule(
-        self, dto: AcquisitionSimulateDTO
-    ) -> list[InstallmentDTO]: ...
+    def build_schedule(self, dto: AcquisitionSimulateDTO) -> list[InstallmentDTO]: ...
 
 
 class CashStrategy:

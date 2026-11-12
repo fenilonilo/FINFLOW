@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { MonthSummary } from '@/types/api'
+import type { MonthSummary } from '@/types/models'
 
 export function useMonthSummary(year: number, month: number) {
   return useQuery({

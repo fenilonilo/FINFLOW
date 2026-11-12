@@ -22,9 +22,7 @@ class InvestmentRepository:
     @staticmethod
     def get_goal(user_id: int, year: int, month: int) -> Decimal:
         try:
-            goal = InvestmentGoal.objects.get(
-                user_id=user_id, year=year, month=month
-            )
+            goal = InvestmentGoal.objects.get(user_id=user_id, year=year, month=month)
             return goal.target_amount
         except InvestmentGoal.DoesNotExist:
             return Decimal("0")

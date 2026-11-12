@@ -12,20 +12,21 @@ import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CategoryBadge from '@/components/ui/CategoryBadge'
 import { toast } from '@/components/ui/Toast'
-import type { Transaction, Category, PaymentMethod, PaginatedResponse } from '@/types/api'
+import type { Transaction, Category, PaymentMethod, PaginatedResponse } from '@/types/models'
 import {
   Plus,
   Trash2,
   CheckCircle2,
   Circle,
   Search,
+  Pencil,
   Filter,
   ArrowLeftRight,
 } from 'lucide-react'
 
 const schema = z.object({
   type: z.enum(['income', 'expense']),
-  kind: z.enum(['fixed', 'variable']),
+  fixed: z.boolean().default(false),
   description: z.string().min(1, 'Descrição obrigatória'),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Valor inválido'),
   date: z.string().min(1, 'Data obrigatória'),
@@ -78,7 +79,18 @@ export default function Transactions() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: FormData) => api.post('/transactions/', data),
+    mutationFn: ({ fixed, ...data }: FormData) => {
+      if (!fixed) return api.post('/transactions/', data)
+      return api.post('/recurring-expenses/', {
+        type: data.type,
+        description: data.description,
+        default_amount: data.amount,
+        due_day: Number(data.date.slice(8, 10)),
+        category: data.category,
+        payment_method: data.payment_method,
+        start_date: `${year}-${String(month).padStart(2, '0')}-01`,
+      })
+    },
     onSuccess: () => {
       toast('Lançamento criado', 'success')
       queryClient.invalidateQueries({ queryKey: ['summary', year, month] })
@@ -88,6 +100,20 @@ export default function Transactions() {
       reset()
     },
     onError: () => toast('Erro ao criar lançamento', 'error'),
+  })
+
+  const [editTx, setEditTx] = useState<Transaction | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const editMutation = useMutation({
+    mutationFn: ({ id, amount }: { id: number; amount: string }) =>
+      api.patch(`/transactions/${id}/`, { amount }),
+    onSuccess: () => {
+      toast('Valor atualizado', 'success')
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['summary', year, month] })
+      setEditTx(null)
+    },
+    onError: () => toast('Erro ao atualizar', 'error'),
   })
 
   const togglePaidMutation = useMutation({
@@ -120,7 +146,7 @@ export default function Transactions() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { type: 'expense', kind: 'variable', is_paid: false },
+    defaultValues: { type: 'expense', fixed: false, is_paid: false },
   })
 
   const txType = watch('type')
@@ -134,7 +160,7 @@ export default function Transactions() {
     const payload: Record<string, unknown> = { ...data }
     if (!payload.category) delete payload.category
     if (!payload.payment_method) delete payload.payment_method
-    if (!payload.installments) delete payload.installments
+    if (!payload.installments || !isCredit || data.fixed) delete payload.installments
     createMutation.mutate(payload as FormData)
   }
 
@@ -250,6 +276,13 @@ export default function Transactions() {
           description="Adicione seu primeiro lançamento ou ajuste os filtros"
         />
       ) : (
+        <div className="space-y-5">
+          {([['income', 'Entradas'], ['expense', 'Saídas']] as const).map(([t, title]) => {
+            const rows = data.results.filter((tx) => tx.type === t)
+            if (!rows.length) return null
+            return (
+              <div key={t}>
+                <h2 className="mb-2 text-sm font-semibold text-text-primary">{title}</h2>
         <div className="rounded-2xl border border-border-subtle bg-surface overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -264,14 +297,19 @@ export default function Transactions() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
-              {data.results.map((tx) => (
+              {rows.map((tx) => (
                 <tr key={tx.id} className="hover:bg-elevated/50 transition-colors">
                   <td className="px-4 py-3 text-xs text-text-muted tabular-nums">
                     {new Date(tx.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
-                      <span className="font-medium text-text-primary">{tx.description}</span>
+                      <span className="flex items-center gap-2 font-medium text-text-primary">
+                        {tx.description}
+                        {tx.is_fixed && (
+                          <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent">Fixo</span>
+                        )}
+                      </span>
                       {tx.installment_current && tx.installment_total && (
                         <span className="text-xs text-text-muted">
                           Parcela {tx.installment_current}/{tx.installment_total}
@@ -314,6 +352,13 @@ export default function Transactions() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
+                      onClick={() => { setEditTx(tx); setEditAmount(tx.amount) }}
+                      className="mr-2 text-text-muted hover:text-accent transition-colors"
+                      title="Editar valor"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
                       onClick={() => setDeleteId(tx.id)}
                       className="text-text-muted hover:text-danger transition-colors"
                     >
@@ -324,7 +369,10 @@ export default function Transactions() {
               ))}
             </tbody>
           </table>
-
+                </div>
+              </div>
+            )
+          })}
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border-subtle px-4 py-3">
@@ -364,7 +412,7 @@ export default function Transactions() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => { setValue('type', t); if (t === 'income') { setValue('is_paid', true); setValue('category', undefined); setValue('payment_method', undefined) } }}
+                  onClick={() => { setValue('type', t); if (t === 'income') { setValue('is_paid', true) } }}
                   className={`flex-1 py-2 text-sm font-medium transition-colors ${
                     txType === t
                       ? t === 'expense'
@@ -419,7 +467,7 @@ export default function Transactions() {
                 </div>
               </div>
 
-              {txType === 'expense' && (
+              {(
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="mb-1.5 block text-xs font-medium text-text-muted">Categoria</label>
@@ -452,7 +500,7 @@ export default function Transactions() {
                 </div>
               )}
 
-              {txType === 'expense' && isCredit && (
+              {txType === 'expense' && isCredit && !watch('fixed') && (
                 <div className="space-y-3 rounded-xl border border-accent/20 bg-accent/5 p-3">
                   {watchedDate && selectedPm?.card_detail && (
                     <p className="text-xs text-accent">
@@ -493,19 +541,17 @@ export default function Transactions() {
               )}
 
               <div className="flex items-center gap-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-text-muted">Tipo</label>
-                  <select
-                    {...register('kind')}
-                    className="rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-muted focus:border-accent/50 focus:outline-none"
-                  >
-                    <option value="variable">Variável</option>
-                    <option value="fixed">Fixo</option>
-                  </select>
-                </div>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    {...register('fixed')}
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-border-subtle accent-accent"
+                  />
+                  <span className="text-sm text-text-muted">Fixo (repete todo mês)</span>
+                </label>
 
                 {txType === 'expense' && (
-                  <label className="flex cursor-pointer items-center gap-2 mt-5">
+                  <label className="flex cursor-pointer items-center gap-2">
                     <input
                       {...register('is_paid')}
                       type="checkbox"
@@ -533,6 +579,37 @@ export default function Transactions() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit amount */}
+      {editTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-surface p-6 shadow-2xl">
+            <h2 className="mb-1 text-base font-semibold text-text-primary">{editTx.description}</h2>
+            <label className="mb-1.5 mt-4 block text-xs font-medium text-text-muted">Valor (R$)</label>
+            <input
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              inputMode="decimal"
+              className="w-full rounded-xl border border-border-subtle bg-elevated px-3 py-2 text-sm text-text-primary focus:border-accent/50 focus:outline-none"
+            />
+            {editTx.is_fixed && (
+              <p className="mt-2 text-xs text-warning">Vale para este mês e os seguintes.</p>
+            )}
+            <div className="mt-5 flex justify-end gap-3">
+              <button onClick={() => setEditTx(null)} className="rounded-xl px-4 py-2 text-sm text-text-muted hover:bg-elevated transition-colors">
+                Cancelar
+              </button>
+              <button
+                disabled={!/^\d+(\.\d{1,2})?$/.test(editAmount) || editMutation.isPending}
+                onClick={() => editMutation.mutate({ id: editTx.id, amount: editAmount })}
+                className="rounded-xl bg-accent/20 px-5 py-2 text-sm font-medium text-accent hover:bg-accent/30 transition-colors disabled:opacity-50"
+              >
+                Salvar
+              </button>
+            </div>
           </div>
         </div>
       )}

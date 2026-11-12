@@ -20,3 +20,15 @@
 | F7 | Endpoints analytics/heatmap, analytics/category-trends, analytics/top-categories adicionados ao MSW | Backend nao implementado ainda; MSW retorna dados mock validos para dev/test |
 | Pós-F8 | Cartões integrados via PaymentMethod (card FK + card_function); fatura = soma automática por ciclo de fechamento; parcelado crédito gera Debt + N transações com competência da fatura | Spec não previa integração cartões↔lançamentos↔dívidas; Transaction como fonte única evita contagem dupla; detalhes em docs/superpowers/specs/2026-06-12-cards-credit-integration-design.md |
 | Infra | Anonymous volume `/app/.venv` no backend + `.dockerignore` (backend e frontend) | Bind-mount `./backend:/app` sobrescrevia o `.venv` Linux do container com o `.venv` Windows do host (binarios incompativeis) -> backend crashava com `ModuleNotFoundError: No module named 'django.core'`. Volume anonimo protege em runtime; `.dockerignore` impede `COPY . .` de copiar `.venv`/`node_modules` do host na imagem em build-time. Mesmo padrao do guard `node_modules` que o frontend ja tinha |
+| Refat-2026-11 | Refatoração simplificada (5 abas, fixos entrada/saída, importação Inter/Nubank) sobrepõe seções 5/6 | Pedido explícito do usuário; detalhes em docs/superpowers/specs/2026-11-11-refatoracao-simplificada.md |
+| Refat-2026-11 | Fixos começam em 2026-11 (mês atual); Inter fecha 7/vence 14, Nubank fecha 8/vence 15; Apartamento/Leo dia 10; Trampo via Pix | Planilha não traz ano coerente nem ciclo dos cartões; vencimento = dia da planilha, fechamento = 7 dias antes |
+| Refat-2026-11 | Sem testes novos nesta rodada | Usuário dispensou testes; validação feita rodando o sistema |
+
+- Front: types/api.ts (gerado, sem aliases) não exporta mais Transaction/Card etc.; aliases manuais restaurados em frontend/src/types/models.ts (+ is_fixed, RecurringExpense.type/card/start_date, ImportResult) e imports repontados.
+- Front: aba Cartões em Configurações reaproveita a página Cards.tsx inteira (CRUD + limite) em vez de duplicar o formulário.
+- Front: Lançamentos mantém paginação do backend (50/página); seções Entradas/Saídas dividem a página atual.
+- Front: edição de lançamento limitada ao valor (PATCH amount), com aviso para fixos.
+| MCP | SDK `mcp<2` (FastMCP 1.x) em vez de 2.x | mcp 2.x renomeou FastMCP para MCPServer e mudou APIs; 1.30 é estável e é o `FastMCP` pedido |
+| MCP | Auth bearer via middleware ASGI próprio (`hmac.compare_digest`) em vez do AuthSettings/OAuth do SDK | Token estático de dono único; OAuth seria over-engineering |
+| MCP | `CreateTransactionDTO.import_key` + `TransactionRepository.get_by_import_key` | Idempotência do `add_transaction` reaproveitando `Transaction.import_key` (`mcp:<sha1>`), sem schema novo |
+| MCP | `UserRepository.get_id_by_email` e `RecurringExpenseRepository.create` | ORM só em repositories; add_fixed não tinha service de criação (view usava serializer) |

@@ -31,9 +31,9 @@ def _score(
         Decimal("0"),
         (Decimal("100") - fixed_commitment) / Decimal("100") * Decimal("30"),
     )
-    regularity = (
-        Decimal(months_positive) / Decimal(max(total_months, 1))
-    ) * Decimal("30")
+    regularity = (Decimal(months_positive) / Decimal(max(total_months, 1))) * Decimal(
+        "30"
+    )
     return int((s + f + regularity).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
@@ -47,9 +47,7 @@ class AcquisitionSimulationService:
         schedule = strategy.build_schedule(dto)
 
         financed = dto.total_value - dto.down_payment
-        total_paid = (
-            sum((s.amount for s in schedule), Decimal("0")) + dto.down_payment
-        )
+        total_paid = sum((s.amount for s in schedule), Decimal("0")) + dto.down_payment
         total_interest = sum((s.interest_portion for s in schedule), Decimal("0"))
         effective_cost_pct = (
             (total_interest / financed * Decimal("100")).quantize(
@@ -87,9 +85,7 @@ class AcquisitionSimulationService:
                 {
                     "year": inst.due_date.year,
                     "month": inst.due_date.month,
-                    "projected_balance": str(
-                        proj_balance.quantize(Decimal("0.01"))
-                    ),
+                    "projected_balance": str(proj_balance.quantize(Decimal("0.01"))),
                     "cumulative_paid": str(cumulative.quantize(Decimal("0.01"))),
                 }
             )
@@ -99,9 +95,7 @@ class AcquisitionSimulationService:
         n_total = len(schedule)
         for k, inst in enumerate(schedule):
             periods_remaining = n_total - k
-            fv = inst.amount * (
-                (Decimal("1") + OPPORTUNITY_RATE) ** periods_remaining
-            )
+            fv = inst.amount * ((Decimal("1") + OPPORTUNITY_RATE) ** periods_remaining)
             opp += fv
         opp = (opp - total_paid).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 

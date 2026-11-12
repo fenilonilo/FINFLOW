@@ -12,6 +12,7 @@ from apps.cards.api.serializers import (
 from apps.cards.dtos import CardWriteDTO
 from apps.cards.models import Card, CardInvoice
 from apps.cards.services import CardInvoiceService, CardService
+from apps.transactions.services import RecurringExpenseService
 
 
 class CardViewSet(viewsets.ModelViewSet):
@@ -55,6 +56,7 @@ class CardViewSet(viewsets.ModelViewSet):
     def summary(self, request):
         year = int(request.query_params.get("year"))
         month = int(request.query_params.get("month"))
+        RecurringExpenseService().ensure_month(request.user.id, year, month)
         data = CardInvoiceService().summary(request.user.id, year, month)
         return Response([serialize_card_summary(d) for d in data])
 

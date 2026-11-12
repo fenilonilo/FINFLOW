@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "apps.cards",
     "apps.acquisitions",
     "apps.analytics",
+    "apps.mcp_server",
 ]
 
 MIDDLEWARE = [

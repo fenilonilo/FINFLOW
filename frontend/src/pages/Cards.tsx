@@ -11,7 +11,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ColorPicker from '@/components/ui/ColorPicker'
 import { toast } from '@/components/ui/Toast'
-import type { CardSummary } from '@/types/api'
+import type { CardSummary } from '@/types/models'
 import { Plus, Pencil, Trash2, CreditCard, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react'
 
 const cardSchema = z.object({

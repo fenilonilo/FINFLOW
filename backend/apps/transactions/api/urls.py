@@ -7,6 +7,7 @@ from apps.transactions.api.views import (
     GenerateVariablesView,
     MonthSummaryView,
     RecurringExpenseViewSet,
+    StatementImportView,
     TransactionViewSet,
 )
 
@@ -18,6 +19,7 @@ router.register(
 router.register("debts", DebtViewSet, basename="debt")
 
 urlpatterns = [
+    path("imports/statement/", StatementImportView.as_view(), name="import-statement"),
     path("", include(router.urls)),
     path(
         "months/<int:year>/<int:month>/summary/",

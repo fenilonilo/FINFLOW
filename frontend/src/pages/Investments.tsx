@@ -10,7 +10,7 @@ import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
-import type { Investment, PaginatedResponse } from '@/types/api'
+import type { Investment, PaginatedResponse } from '@/types/models'
 import { Plus, Trash2, TrendingUp } from 'lucide-react'
 import {
   AreaChart,

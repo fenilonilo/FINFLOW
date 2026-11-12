@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Transaction, PaginatedResponse } from '@/types/api'
+import type { Transaction, PaginatedResponse } from '@/types/models'
 
 export interface TransactionFilters {
   year?: number

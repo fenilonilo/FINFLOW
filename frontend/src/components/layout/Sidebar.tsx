@@ -1,25 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  RefreshCw,
-  ShoppingBag,
-  TrendingUp,
-  CreditCard,
-  DollarSign,
-  BarChart3,
-  Settings,
-} from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, Upload, BarChart3, Settings } from 'lucide-react'
 
 const NAV = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/transactions', icon: ArrowLeftRight, label: 'Lançamentos' },
-  { to: '/recurring', icon: RefreshCw, label: 'Gastos Fixos' },
-  { to: '/acquisitions', icon: ShoppingBag, label: 'Aquisições' },
-  { to: '/investments', icon: TrendingUp, label: 'Investimentos' },
-  { to: '/cards', icon: CreditCard, label: 'Cartões' },
-  { to: '/debts', icon: DollarSign, label: 'Dívidas' },
-  { to: '/analytics', icon: BarChart3, label: 'Análises' },
+  { to: '/import', icon: Upload, label: 'Importar' },
+  { to: '/analytics', icon: BarChart3, label: 'Análise' },
   { to: '/settings', icon: Settings, label: 'Configurações' },
 ]
 
@@ -52,7 +38,7 @@ export default function Sidebar() {
       </aside>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border-subtle bg-surface px-2 py-2 md:hidden">
-        {NAV.slice(0, 5).map(({ to, icon: Icon, label }) => (
+        {NAV.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}

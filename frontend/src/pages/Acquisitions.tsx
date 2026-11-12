@@ -9,7 +9,7 @@ import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
-import type { SimulationResult, PaginatedResponse } from '@/types/api'
+import type { SimulationResult, PaginatedResponse } from '@/types/models'
 import {
   ShoppingBag,
   Play,

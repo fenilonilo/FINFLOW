@@ -1,4 +1,3 @@
-
 import pytest
 
 from apps.common.exceptions import DomainError, NotFoundError, ValidationDomainError

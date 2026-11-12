@@ -1,4 +1,4 @@
-import type { MonthSummary } from '@/types/api'
+import type { MonthSummary } from '@/types/models'
 
 export const mockSummary: MonthSummary = {
   year: 2025,

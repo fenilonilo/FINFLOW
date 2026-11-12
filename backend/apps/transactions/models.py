@@ -32,6 +32,19 @@ class RecurringExpense(models.Model):
         PaymentMethod, on_delete=models.PROTECT, null=True, blank=True
     )
     description = models.CharField(max_length=100)
+    type = models.CharField(
+        max_length=10,
+        choices=TransactionType.choices,
+        default=TransactionType.EXPENSE,
+    )
+    card = models.ForeignKey(
+        "cards.Card",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="fixed_expenses",
+    )
+    start_date = models.DateField(null=True, blank=True)
     is_variable = models.BooleanField(default=False)
     default_amount = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True
@@ -79,6 +92,7 @@ class Transaction(models.Model):
         PaymentMethod, null=True, blank=True, on_delete=models.SET_NULL
     )
     is_paid = models.BooleanField(default=False)
+    import_key = models.CharField(max_length=64, null=True, blank=True)
     recurring_source = models.ForeignKey(
         RecurringExpense,
         null=True,
@@ -111,7 +125,12 @@ class Transaction(models.Model):
                 fields=["user", "recurring_source", "year", "month"],
                 condition=models.Q(recurring_source__isnull=False),
                 name="unique_transaction_recurring_per_month",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["user", "import_key"],
+                condition=models.Q(import_key__isnull=False),
+                name="unique_import_key_per_user",
+            ),
         ]
 
     def save(self, *args: Any, **kwargs: Any) -> None:

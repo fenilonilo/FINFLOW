@@ -1,4 +1,4 @@
-import type { Transaction } from '@/types/api'
+import type { Transaction } from '@/types/models'
 
 export const mockTransactions: Transaction[] = [
   {
@@ -16,6 +16,7 @@ export const mockTransactions: Transaction[] = [
     payment_method_detail: { id: 1, name: 'Pix', icon: 'zap', color: '#34d399' },
     is_paid: true,
     recurring_source: 1,
+    is_fixed: false,
     installment_current: null,
     installment_total: null,
   },
@@ -34,6 +35,7 @@ export const mockTransactions: Transaction[] = [
     payment_method_detail: { id: 1, name: 'Pix', icon: 'zap', color: '#34d399' },
     is_paid: true,
     recurring_source: null,
+    is_fixed: false,
     installment_current: null,
     installment_total: null,
   },

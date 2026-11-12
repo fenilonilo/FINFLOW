@@ -1,6 +1,7 @@
 """Prova de desacoplamento (plano sec. 3.2 / 9 checklist):
 injetar um FakeAIAdvisor NAO exige alterar nenhum service.
 """
+
 import datetime
 from decimal import Decimal
 

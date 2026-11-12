@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.core.api.serializers import CategorySerializer, PaymentMethodSerializer
@@ -52,6 +53,11 @@ class TransactionSerializer(serializers.ModelSerializer):
     installments = serializers.IntegerField(
         min_value=2, max_value=48, required=False, write_only=True
     )
+    is_fixed = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_fixed(self, obj) -> bool:
+        return obj.recurring_source_id is not None
 
     class Meta:
         model = Transaction
@@ -70,6 +76,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "payment_method_detail",
             "is_paid",
             "recurring_source",
+            "is_fixed",
             "installment_current",
             "installment_total",
             "debt",
@@ -82,6 +89,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             "category_detail",
             "payment_method_detail",
             "debt",
+            "recurring_source",
+            "is_fixed",
         ]
 
 
@@ -96,6 +105,9 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "description",
+            "type",
+            "card",
+            "start_date",
             "is_variable",
             "category",
             "category_detail",
@@ -122,6 +134,14 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
                 {"default_amount": ["Valor obrigatório para gastos de valor fixo."]}
             )
         return data
+
+
+class StatementImportSerializer(serializers.Serializer):
+    file = serializers.FileField()
+    card_id = serializers.IntegerField()
+    kind = serializers.ChoiceField(choices=["credit", "debit"])
+    year = serializers.IntegerField(required=False)
+    month = serializers.IntegerField(required=False, min_value=1, max_value=12)
 
 
 class GenerateVariableItemSerializer(serializers.Serializer):

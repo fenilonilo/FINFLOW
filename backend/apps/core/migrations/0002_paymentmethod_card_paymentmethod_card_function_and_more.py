@@ -6,30 +6,51 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('cards', '0002_card_limit'),
-        ('core', '0001_initial'),
+        ("cards", "0002_card_limit"),
+        ("core", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='paymentmethod',
-            name='card',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='payment_methods', to='cards.card'),
+            model_name="paymentmethod",
+            name="card",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="payment_methods",
+                to="cards.card",
+            ),
         ),
         migrations.AddField(
-            model_name='paymentmethod',
-            name='card_function',
-            field=models.CharField(blank=True, choices=[('credit', 'Credit'), ('debit', 'Debit')], max_length=10, null=True),
+            model_name="paymentmethod",
+            name="card_function",
+            field=models.CharField(
+                blank=True,
+                choices=[("credit", "Credit"), ("debit", "Debit")],
+                max_length=10,
+                null=True,
+            ),
         ),
         migrations.AddConstraint(
-            model_name='paymentmethod',
-            constraint=models.UniqueConstraint(condition=models.Q(('card__isnull', False)), fields=('card', 'card_function'), name='unique_card_function_per_card'),
+            model_name="paymentmethod",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("card__isnull", False)),
+                fields=("card", "card_function"),
+                name="unique_card_function_per_card",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='paymentmethod',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('card__isnull', True), ('card_function__isnull', True)), models.Q(('card__isnull', False), ('card_function__isnull', False)), _connector='OR'), name='card_and_function_together'),
+            model_name="paymentmethod",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    models.Q(("card__isnull", True), ("card_function__isnull", True)),
+                    models.Q(("card__isnull", False), ("card_function__isnull", False)),
+                    _connector="OR",
+                ),
+                name="card_and_function_together",
+            ),
         ),
     ]

@@ -26,7 +26,10 @@ class TestAcquisitionSimulate:
         assert "schedule" in resp.data
         assert len(resp.data["schedule"]) == 24
         assert resp.data["impact"]["verdict"] in [
-            "safe", "moderate", "risky", "critical"
+            "safe",
+            "moderate",
+            "risky",
+            "critical",
         ]
         # Validate shape of first installment
         first = resp.data["schedule"][0]

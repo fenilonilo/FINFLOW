@@ -85,9 +85,7 @@ class FinancialHealthService:
             if month == 0:
                 month = 12
                 year -= 1
-            income = self._tx.sum_by_type(
-                user_id, year, month, TransactionType.INCOME
-            )
+            income = self._tx.sum_by_type(user_id, year, month, TransactionType.INCOME)
             expense = self._tx.sum_by_type(
                 user_id, year, month, TransactionType.EXPENSE
             )
@@ -124,9 +122,7 @@ class FinancialHealthService:
             else Decimal("0")
         )
 
-        months_positive = sum(
-            1 for d in months_data if d[0] - d[1] - d[2] > 0
-        )
+        months_positive = sum(1 for d in months_data if d[0] - d[1] - d[2] > 0)
 
         # score: savings_rate 40% + fixed_commitment_invertido 30%
         #        + regularidade 30%

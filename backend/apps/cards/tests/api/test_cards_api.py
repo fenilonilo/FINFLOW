@@ -44,8 +44,13 @@ def test_create_card_without_functions_returns_validation_envelope(client):
     api, _ = client
     resp = api.post(
         "/api/v1/cards/",
-        {"name": "X", "color": "#fff", "closing_day": 3, "due_day": 10,
-         "functions": []},
+        {
+            "name": "X",
+            "color": "#fff",
+            "closing_day": 3,
+            "due_day": 10,
+            "functions": [],
+        },
         format="json",
     )
     assert resp.status_code == 400
@@ -56,8 +61,14 @@ def test_summary_and_pay_invoice_flow(client):
     api, user = client
     resp = api.post(
         "/api/v1/cards/",
-        {"name": "Nubank", "color": "#820ad1", "closing_day": 3, "due_day": 10,
-         "limit": "1000.00", "functions": ["credit"]},
+        {
+            "name": "Nubank",
+            "color": "#820ad1",
+            "closing_day": 3,
+            "due_day": 10,
+            "limit": "1000.00",
+            "functions": ["credit"],
+        },
         format="json",
     )
     card_id = resp.data["id"]

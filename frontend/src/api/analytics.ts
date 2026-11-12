@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from './client'
-import type { FinancialHealth } from '@/types/api'
+import type { FinancialHealth } from '@/types/models'
 
 export interface YearlyMonth {
   month: number

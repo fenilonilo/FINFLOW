@@ -74,9 +74,7 @@ class RecurringExpenseFactory(DjangoModelFactory):
         model = RecurringExpense
 
     user = factory.SubFactory(UserFactory)
-    category = factory.SubFactory(
-        CategoryFactory, user=factory.SelfAttribute("..user")
-    )
+    category = factory.SubFactory(CategoryFactory, user=factory.SelfAttribute("..user"))
     payment_method = factory.SubFactory(
         PaymentMethodFactory, user=factory.SelfAttribute("..user")
     )
@@ -96,9 +94,7 @@ class TransactionFactory(DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     type = TransactionType.EXPENSE
     kind = TransactionKind.VARIABLE
-    category = factory.SubFactory(
-        CategoryFactory, user=factory.SelfAttribute("..user")
-    )
+    category = factory.SubFactory(CategoryFactory, user=factory.SelfAttribute("..user"))
     description = factory.Sequence(lambda n: f"Transação {n}")
     amount = Decimal("50.00")
     date = factory.LazyFunction(lambda: datetime.date(2025, 1, 15))

@@ -38,6 +38,29 @@ services:
       sh -c "uv run python manage.py migrate &&
              uv run python manage.py runserver 0.0.0.0:8000"
 
+  mcp:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      POSTGRES_HOST: db
+      POSTGRES_DB: finflow
+      POSTGRES_USER: finflow
+      POSTGRES_PASSWORD: finflow
+      SECRET_KEY: dev-insecure-key-change-in-prod
+      FINFLOW_MCP_TOKEN: ${FINFLOW_MCP_TOKEN:-}
+      FINFLOW_MCP_USER_EMAIL: ${FINFLOW_MCP_USER_EMAIL:-}
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uv run python manage.py run_mcp
+
   frontend:
     build:
       context: ./frontend

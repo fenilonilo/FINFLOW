@@ -1,11 +1,14 @@
 import calendar
 import datetime
+import hashlib
+import re
 from decimal import ROUND_FLOOR, Decimal
 from typing import Any
 
 from django.db import transaction as db_transaction
 
 from apps.cards.cycle import add_months, competence_for_purchase
+from apps.cards.repositories import CardPaymentMethodRepository, CardRepository
 from apps.common.dtos import (
     CreateTransactionDTO,
     GenerationResultDTO,
@@ -18,6 +21,7 @@ from apps.core.repositories import (  # noqa: F401
     PaymentMethodRepository,
 )
 from apps.investments.repositories import InvestmentRepository
+from apps.transactions.importers import ParsedRow, parse_statement
 from apps.transactions.models import (
     DebtOrigin,
     RecurringStatus,
@@ -110,6 +114,76 @@ class RecurringExpenseService:
             completed_templates=completed,
             pending_variables=pending_variables,
         )
+
+    def ensure_month(self, user_id: int, year: int, month: int) -> int:
+        """R1: gera (idempotente) os fixos do mês. Retorna quantos criou."""
+        created = 0
+        card_ids: set[int] = set()
+        for template in self._recurring.list_active(user_id):
+            if template.card_id:
+                card_ids.add(template.card_id)
+            if template.start_date and (year, month) < (
+                template.start_date.year,
+                template.start_date.month,
+            ):
+                continue
+            if template.default_amount is None:
+                continue
+            if self._recurring.exists_transaction_for_month(
+                template.id, user_id, year, month
+            ):
+                continue
+            day = min(template.due_day, calendar.monthrange(year, month)[1])
+            self._tx.create(
+                {
+                    "user_id": user_id,
+                    "type": template.type,
+                    "kind": TransactionKind.FIXED,
+                    "category_id": template.category_id,
+                    "payment_method_id": template.payment_method_id,
+                    "description": template.description,
+                    "amount": template.default_amount,
+                    "date": datetime.date(year, month, day),
+                    "year": year,
+                    "month": month,
+                    "is_paid": template.type == TransactionType.INCOME,
+                    "recurring_source_id": template.id,
+                }
+            )
+            created += 1
+        for card_id in card_ids:
+            self.sync_card_fixed(user_id, card_id, year, month)
+        return created
+
+    def delete_template(
+        self, template_id: int, user_id: int, today: datetime.date
+    ) -> None:
+        """Exclui o template e as transações não pagas de meses futuros."""
+        template = self._recurring.get_by_id(template_id, user_id)
+        with db_transaction.atomic():
+            self._recurring.delete_future_unpaid(template, today.year, today.month)
+            template.delete()  # transações restantes ficam (SET_NULL)
+
+    def sync_card_fixed(
+        self, user_id: int, card_id: int, year: int, month: int
+    ) -> None:
+        """R3: valor do fixo vinculado ao cartão = soma dos itens de crédito."""
+        total = self._recurring.card_credit_total(user_id, card_id, year, month)
+        if total is None:
+            return
+        for template in self._recurring.list_by_card(user_id, card_id):
+            tx = self._recurring.get_transaction_for_month(
+                template.id, user_id, year, month
+            )
+            if tx is not None and tx.amount != total:
+                tx.amount = total
+                tx.save(update_fields=["amount", "updated_at"])
+
+    def propagate_amount(self, tx: Transaction, amount: Decimal) -> None:
+        template = self._recurring.get_by_id(tx.recurring_source_id, tx.user_id)
+        template.default_amount = amount
+        template.save(update_fields=["default_amount", "updated_at"])
+        self._tx.update_later_unpaid_amount(tx, amount)
 
     def generate_variables(
         self,
@@ -205,9 +279,7 @@ class TransactionService:
             raise ValidationDomainError(errors)
 
         is_paid = True if dto.type == TransactionType.INCOME else dto.is_paid
-        category_id = (
-            None if dto.type == TransactionType.INCOME else dto.category_id
-        )
+        category_id = None if dto.type == TransactionType.INCOME else dto.category_id
 
         year, month = self.resolve_competence(
             dto.user_id, dto.payment_method_id, dto.date
@@ -229,6 +301,7 @@ class TransactionService:
                 "recurring_source_id": dto.recurring_source_id,
                 "installment_current": dto.installment_current,
                 "installment_total": dto.installment_total,
+                "import_key": dto.import_key,
             }
         )
 
@@ -264,9 +337,7 @@ class TransactionService:
             Decimal("0.01"), rounding=ROUND_FLOOR
         )
         last_installment = dto.amount - per_installment * (installments - 1)
-        base_year, base_month = competence_for_purchase(
-            pm.card.closing_day, dto.date
-        )
+        base_year, base_month = competence_for_purchase(pm.card.closing_day, dto.date)
 
         with db_transaction.atomic():
             debt = DebtRepository.create(
@@ -286,11 +357,7 @@ class TransactionService:
             txs: list[Transaction] = []
             for number in range(1, installments + 1):
                 year, month = add_months(base_year, base_month, number - 1)
-                amount = (
-                    last_installment
-                    if number == installments
-                    else per_installment
-                )
+                amount = last_installment if number == installments else per_installment
                 txs.append(
                     self._tx.create(
                         {
@@ -312,6 +379,43 @@ class TransactionService:
                     )
                 )
         return txs
+
+    def update(self, tx_id: int, user_id: int, data: dict[str, Any]) -> Transaction:
+        """Atualiza campos editáveis. R2: amount/description/category_id de fixo
+        propagam ao template e às transações posteriores não pagas."""
+        from apps.common.exceptions import ValidationDomainError
+
+        tx = self._tx.get_by_id(tx_id, user_id)
+        if "amount" in data:
+            amount = Decimal(str(data["amount"]))
+            if amount <= Decimal("0"):
+                raise ValidationDomainError(
+                    {"amount": ["Valor deve ser maior que zero."]}
+                )
+            data = {**data, "amount": amount}
+        for field in (
+            "description",
+            "amount",
+            "date",
+            "category_id",
+            "payment_method_id",
+            "is_paid",
+        ):
+            if field in data:
+                setattr(tx, field, data[field])
+        if tx.recurring_source_id is None and (
+            "date" in data or "payment_method_id" in data
+        ):
+            tx.year, tx.month = self.resolve_competence(
+                user_id, tx.payment_method_id, tx.date
+            )
+        with db_transaction.atomic():
+            tx.save()
+            if "amount" in data and tx.recurring_source_id is not None:
+                RecurringExpenseService(transaction_repo=self._tx).propagate_amount(
+                    tx, data["amount"]
+                )
+        return tx
 
     def toggle_paid(self, tx_id: int, user_id: int) -> Transaction:
         tx = self._tx.get_by_id(tx_id, user_id)
@@ -347,9 +451,7 @@ class MonthSummaryService:
         self._tx = transaction_repo or TransactionRepository()
         self._inv = investment_repo or InvestmentRepository()
 
-    def get_summary(
-        self, user_id: int, year: int, month: int
-    ) -> MonthSummaryDTO:
+    def get_summary(self, user_id: int, year: int, month: int) -> MonthSummaryDTO:
         total_income = self._tx.sum_by_type(
             user_id, year, month, TransactionType.INCOME
         )
@@ -383,3 +485,180 @@ class MonthSummaryService:
             by_category=by_category,
             by_payment_method=by_payment_method,
         )
+
+
+_IGNORE_RE = re.compile(
+    r"pagamento (de )?fatura|pagamento on.?line|pagamento recebido|"
+    r"pgto fatura|fatura (do )?cart|pagamento efetuado|estorno de pagamento",
+    re.IGNORECASE,
+)
+# (regex, nome da categoria) — primeira que casar vence
+_KEYWORD_CATEGORIES = [
+    (r"\buber\b|\b99\b|99\s?pop|posto|combust", "Uber/transporte"),
+    (r"ifood|restaurante|lanchonete|padaria", "Alimentação"),
+    (r"mercado|supermerc", "Mercado"),
+    (r"farmac|drogar", "Saúde"),
+    (r"spotify|netflix|prime|youtube", "Assinaturas"),
+]
+
+
+class StatementImportService:
+    """R5/R6: importa fatura/extrato (Inter, Nubank, OFX) como transações."""
+
+    def __init__(
+        self,
+        transaction_repo: TransactionRepository | None = None,
+        recurring_service: RecurringExpenseService | None = None,
+    ) -> None:
+        self._tx = transaction_repo or TransactionRepository()
+        self._recurring = recurring_service or RecurringExpenseService()
+
+    def import_file(
+        self,
+        user_id: int,
+        file_bytes: bytes,
+        filename: str,
+        card_id: int,
+        kind: str,
+        year: int | None = None,
+        month: int | None = None,
+    ) -> dict[str, Any]:
+        from apps.common.exceptions import ValidationDomainError
+
+        if kind not in (CardFunction.CREDIT, CardFunction.DEBIT):
+            raise ValidationDomainError({"kind": ["Use 'credit' ou 'debit'."]})
+        if kind == CardFunction.CREDIT and not (year and month):
+            raise ValidationDomainError(
+                {"year": ["Mês da fatura é obrigatório para crédito."]}
+            )
+        card = CardRepository.get_by_id(card_id, user_id)
+        pm = CardPaymentMethodRepository.get_or_create_function(card, kind)
+        rows = parse_statement(file_bytes, filename)
+        categories = {
+            c.name.lower(): c for c in CategoryRepository.list_by_user(user_id)
+        }
+
+        keys = self._keys(card_id, rows)
+        existing = self._tx.existing_import_keys(user_id, keys)
+        fixed_cache: dict[tuple[int, int], list[Transaction]] = {}
+        items: list[dict[str, Any]] = []
+        created = skipped = 0
+        total = Decimal("0")
+
+        with db_transaction.atomic():
+            for row, key in zip(rows, keys, strict=True):
+                comp = (
+                    (year, month)
+                    if kind == CardFunction.CREDIT
+                    else (
+                        row.date.year,
+                        row.date.month,
+                    )
+                )
+                tx_type = (
+                    TransactionType.EXPENSE if row.outflow else TransactionType.INCOME
+                )
+                item = {
+                    "date": row.date.isoformat(),
+                    "description": row.description,
+                    "amount": str(row.amount.quantize(Decimal("0.01"))),
+                    "category": None,
+                    "status": "created",
+                }
+                if _IGNORE_RE.search(row.description) or (
+                    kind == CardFunction.CREDIT and not row.outflow
+                ):
+                    item["status"] = "ignored"
+                elif key in existing or self._matches_fixed(
+                    user_id, comp, tx_type, row, fixed_cache
+                ):
+                    item["status"] = "duplicate"
+                else:
+                    category = (
+                        None
+                        if tx_type == TransactionType.INCOME
+                        else self._category_for(row, categories, user_id)
+                    )
+                    item["category"] = category.name if category else None
+                    self._tx.create(
+                        {
+                            "user_id": user_id,
+                            "type": tx_type,
+                            "kind": TransactionKind.VARIABLE,
+                            "category_id": category.id if category else None,
+                            "payment_method_id": pm.id,
+                            "description": row.description[:100],
+                            "amount": row.amount,
+                            "date": row.date,
+                            "year": comp[0],
+                            "month": comp[1],
+                            "is_paid": kind == CardFunction.DEBIT
+                            or tx_type == TransactionType.INCOME,
+                            "import_key": key,
+                            "installment_current": row.installment_current,
+                            "installment_total": row.installment_total,
+                        }
+                    )
+                    created += 1
+                    total += row.amount
+                if item["status"] != "created":
+                    skipped += 1
+                items.append(item)
+
+            if kind == CardFunction.CREDIT and year and month:
+                self._recurring.ensure_month(user_id, year, month)
+                self._recurring.sync_card_fixed(user_id, card_id, year, month)
+
+        return {
+            "created": created,
+            "skipped": skipped,
+            "total": str(total.quantize(Decimal("0.01"))),
+            "items": items,
+        }
+
+    @staticmethod
+    def _keys(card_id: int, rows: list[ParsedRow]) -> list[str]:
+        seen: dict[tuple[str, str, str], int] = {}
+        keys = []
+        for r in rows:
+            base = (r.date.isoformat(), r.description, f"{r.amount:.2f}")
+            idx = seen.get(base, 0)
+            seen[base] = idx + 1
+            raw = f"{card_id}|{'|'.join(base)}|{r.outflow}|{idx}"
+            keys.append(hashlib.sha1(raw.encode()).hexdigest())  # noqa: S324
+        return keys
+
+    def _matches_fixed(
+        self,
+        user_id: int,
+        comp: tuple[int, int],
+        tx_type: str,
+        row: ParsedRow,
+        cache: dict[tuple[int, int], list[Transaction]],
+    ) -> bool:
+        if comp not in cache:
+            self._recurring.ensure_month(user_id, *comp)
+            cache[comp] = self._tx.fixed_in_month(user_id, *comp)
+        for fixed in cache[comp]:
+            if fixed.type == tx_type and fixed.amount == row.amount:
+                cache[comp].remove(fixed)  # cada fixo casa com um único item
+                return True
+        return False
+
+    @staticmethod
+    def _category_for(row: ParsedRow, categories: dict[str, Any], user_id: int) -> Any:
+        wanted = next(
+            (
+                name
+                for pattern, name in _KEYWORD_CATEGORIES
+                if re.search(pattern, row.description, re.IGNORECASE)
+            ),
+            None,
+        )
+        if wanted is None and row.bank_category:
+            wanted = row.bank_category
+        cat = categories.get((wanted or "").lower()) or categories.get("outros")
+        if cat is None:
+            cat = CategoryRepository.create_named(user_id, "Outros")
+            categories["outros"] = cat
+        return cat

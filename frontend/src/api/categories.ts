@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Category, PaginatedResponse } from '@/types/api'
+import type { Category, PaginatedResponse } from '@/types/models'
 
 export function useCategories(params?: { is_archived?: boolean }) {
   return useQuery({

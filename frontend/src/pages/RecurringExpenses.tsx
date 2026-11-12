@@ -18,7 +18,7 @@ import type {
   PaginatedResponse,
   PendingVariable,
   GenerateFixedResult,
-} from '@/types/api'
+} from '@/types/models'
 import { Plus, Pencil, Archive, RefreshCw } from 'lucide-react'
 
 const schema = z
