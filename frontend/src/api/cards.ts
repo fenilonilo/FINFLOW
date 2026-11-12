@@ -37,7 +37,7 @@ export function useUpdateCard() {
   return useMutation({
     mutationFn: ({ id, ...payload }: Partial<Card> & { id: number }) =>
       api
-        .patch<Card>(`/cards/${id}/`, { ...payload, limit: payload.limit || null })
+        .patch<Card>(`/cards/${id}/`, 'limit' in payload ? { ...payload, limit: payload.limit || null } : payload)
         .then((r) => r.data),
     onSuccess: () => invalidateCards(qc),
   })

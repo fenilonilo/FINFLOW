@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import { api } from './client'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { useMonthTransactions } from './transactions'
-import { usePayInvoice } from './cards'
+import { usePayInvoice, useUpdateCard } from './cards'
 import { useImportStatement } from './imports'
 
 const server = setupServer()
@@ -83,18 +83,39 @@ describe('mutations', () => {
   test('useImportStatement sends dry_run and categories JSON', async () => {
     // jsdom FormData + msw request body hangs, so inspect the FormData handed to axios
     const forms: FormData[] = []
-    vi.spyOn(api, 'post').mockImplementation(async (_url, data) => {
+    const urls: string[] = []
+    const invalidate = vi.spyOn(QueryClient.prototype, 'invalidateQueries')
+    vi.spyOn(api, 'post').mockImplementation(async (url, data) => {
+      urls.push(url)
       forms.push(data as FormData)
       return { data: { created: 0, skipped: 0, total: '0.00', items: [] } }
     })
     const { result } = renderHook(() => useImportStatement(), { wrapper })
     const base = { file: new File(['x'], 'f.csv'), cardId: 1, kind: 'credit' as const, year: 2026, month: 11 }
     await act(() => result.current.mutateAsync({ ...base, dryRun: true }))
+    expect(invalidate).not.toHaveBeenCalled()
     await act(() => result.current.mutateAsync({ ...base, categories: { 0: 3 } }))
+    expect(invalidate).toHaveBeenCalled()
+    expect(urls).toEqual(['/imports/statement/', '/imports/statement/'])
     expect(forms[0].get('dry_run')).toBe('true')
     expect(forms[0].get('card_id')).toBe('1')
     expect(forms[0].has('categories')).toBe(false)
     expect(forms[1].get('dry_run')).toBe('false')
     expect(forms[1].get('categories')).toBe('{"0":3}')
+  })
+
+  test('useUpdateCard omits limit from PATCH when not passed', async () => {
+    const bodies: Record<string, unknown>[] = []
+    server.use(
+      http.patch('*/api/v1/cards/5/', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>)
+        return HttpResponse.json({})
+      }),
+    )
+    const { result } = renderHook(() => useUpdateCard(), { wrapper })
+    await act(() => result.current.mutateAsync({ id: 5, name: 'X' }))
+    await act(() => result.current.mutateAsync({ id: 5, limit: '' }))
+    expect(bodies[0]).toEqual({ name: 'X' })
+    expect(bodies[1]).toEqual({ limit: null })
   })
 })
